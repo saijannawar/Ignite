@@ -30,7 +30,7 @@ export default function OrderSuccess() {
         {/* Back Home Button */}
         <Link 
           to="/" 
-          className="inline-block px-8 py-3 bg-white border border-[#ff4d4d] text-[#ff4d4d] font-bold text-sm rounded hover:bg-[#ff4d4d] hover:text-white transition-all uppercase tracking-wide shadow-sm"
+          className="inline-block px-8 py-3 bg-white border border-[#734F96] text-[#734F96] font-bold text-sm rounded hover:bg-[#734F96] hover:text-white transition-all uppercase tracking-wide shadow-sm"
         >
           Back to Home
         </Link>

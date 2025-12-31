@@ -14,7 +14,7 @@ export default function Cart() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-800">Your Cart</h1>
-          <p className="text-sm text-gray-500">There are <span className="font-bold text-red-500">{cartItems.length}</span> products in your cart</p>
+          <p className="text-sm text-gray-500">There are <span className="font-bold text-[#734F96]">{cartItems.length}</span> products in your cart</p>
         </div>
 
         {cartItems.length === 0 ? (
@@ -22,7 +22,7 @@ export default function Cart() {
             <ShoppingBag size={60} className="mx-auto text-gray-200 mb-4" />
             <h2 className="text-xl font-bold text-gray-700 mb-2">Your cart is empty</h2>
             <p className="text-gray-500 mb-6">Looks like you haven't added anything yet.</p>
-            <button onClick={() => navigate('/')} className="px-8 py-3 bg-[#ff4d4d] text-white font-bold rounded-full shadow-lg hover:bg-red-600 transition">Start Shopping</button>
+            <button onClick={() => navigate('/')} className="px-8 py-3 bg-[#734F96] text-white font-bold rounded-full shadow-lg hover:bg-[#5e3f7a] transition">Start Shopping</button>
           </div>
         ) : (
           <div className="flex flex-col lg:flex-row gap-8">
@@ -64,7 +64,7 @@ export default function Cart() {
 
                         {/* Price */}
                         <div className="flex items-center gap-2">
-                          <span className="text-xl font-bold text-[#ff4d4d]">₹{item.price * item.quantity}</span>
+                          <span className="text-xl font-bold text-[#734F96]">₹{item.price * item.quantity}</span>
                           {item.oldPrice && <span className="text-sm text-gray-400 line-through">₹{item.oldPrice * item.quantity}</span>}
                         </div>
                       </div>
@@ -82,7 +82,7 @@ export default function Cart() {
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between items-center text-sm text-gray-600">
                     <span>Subtotal</span>
-                    <span className="font-bold text-[#ff4d4d]">₹{cartTotal}</span>
+                    <span className="font-bold text-[#734F96]">₹{cartTotal}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm text-gray-600">
                     <span>Shipping</span>
@@ -90,17 +90,17 @@ export default function Cart() {
                   </div>
                   <div className="flex justify-between items-center text-sm text-gray-600">
                     <span>Estimate for</span>
-                    <span className="font-medium">India</span>
+                    <span className="font-medium">Pune</span>
                   </div>
                   <div className="border-t border-gray-100 pt-4 flex justify-between items-center">
                     <span className="text-base font-bold text-gray-800">Total</span>
-                    <span className="text-xl font-bold text-[#ff4d4d]">₹{cartTotal}</span>
+                    <span className="text-xl font-bold text-[#734F96]">₹{cartTotal}</span>
                   </div>
                 </div>
 
                 <button 
                   onClick={() => navigate('/checkout')}
-                  className="w-full py-4 bg-[#ff4d4d] text-white font-bold rounded shadow-lg hover:bg-red-600 transition-transform active:scale-[0.99] uppercase flex items-center justify-center gap-2"
+                  className="w-full py-4 bg-[#734F96] text-white font-bold rounded shadow-lg hover:bg-[#5e3f7a] transition-transform active:scale-[0.99] uppercase flex items-center justify-center gap-2"
                 >
                   <ShoppingBag size={18} /> Checkout
                 </button>

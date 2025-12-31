@@ -1,10 +1,18 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+// ✅ NEW: Import CartProvider
+import { CartProvider } from './context/CartContext'; 
 
 // Import Pages
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Home from './pages/client/Home';
+
+// Import Shop Page
+import Shop from './pages/client/Shop';
+
+// ✅ NEW: Import About Page
+import About from './pages/client/About';
 
 // Client Pages (Cart, Checkout, Success)
 import Cart from './pages/client/Cart';       
@@ -43,7 +51,7 @@ import AddBanner2 from './pages/admin/banners/AddBanner2';
 import UserList from './pages/admin/user/UserList';
 import AdminOrders from './pages/admin/orders/AdminOrders';
 
-// ✅ NEW: Import Manage Logo Page
+// Import Manage Logo Page
 import ManageLogo from './pages/admin/ManageLogo'; 
 
 // Import Layouts
@@ -71,91 +79,98 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          
-          {/* --- Main Layout Routes (Client Store) --- */}
-          <Route element={<MainLayout />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+        <CartProvider>
+          <Routes>
             
-            {/* Client View: Product Details */}
-            <Route path="/product/:id" element={<ClientProductDetails />} />
+            {/* --- Main Layout Routes (Client Store) --- */}
+            <Route element={<MainLayout />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              
+              {/* Client View: Product Details */}
+              <Route path="/product/:id" element={<ClientProductDetails />} />
 
-            {/* Shop & Utility Routes */}
-            <Route path="/shop" element={<Placeholder title="Shop / Categories" />} />
-            <Route path="/search" element={<Placeholder title="Search Products" />} />
-            
-            {/* Cart & Checkout Routes */}
-            <Route path="/cart" element={<Cart />} />
-            
-            <Route path="/checkout" element={
-              <ProtectedRoute>
-                <Checkout />
+              {/* Shop Route */}
+              <Route path="/shop" element={<Shop />} />
+
+              {/* ✅ NEW: About Route */}
+              <Route path="/about" element={<About />} />
+              
+              {/* Search can also point to Shop or a specific Search page */}
+              <Route path="/search" element={<Placeholder title="Search Products" />} />
+              
+              {/* Cart & Checkout Routes */}
+              <Route path="/cart" element={<Cart />} />
+              
+              <Route path="/checkout" element={
+                <ProtectedRoute>
+                  <Checkout />
+                </ProtectedRoute>
+              } />
+
+              {/* Order Success Route */}
+              <Route path="/order-success" element={
+                <ProtectedRoute>
+                  <OrderSuccess />
+                </ProtectedRoute>
+              } />
+
+              {/* --- Account Related Routes --- */}
+              <Route path="/account" element={<ProtectedRoute><MyAccount /></ProtectedRoute>} />
+              <Route path="/address" element={<ProtectedRoute><MyAccount /></ProtectedRoute>} />
+              <Route path="/wishlist" element={<ProtectedRoute><MyAccount /></ProtectedRoute>} />
+              <Route path="/orders" element={<ProtectedRoute><MyAccount /></ProtectedRoute>} />
+              
+            </Route>
+
+            {/* --- Admin Area --- */}
+            <Route path="/admin" element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminLayout />
               </ProtectedRoute>
-            } />
+            }>
+              <Route path="dashboard" element={<AdminDashboard />} />
 
-            {/* Order Success Route */}
-            <Route path="/order-success" element={
-              <ProtectedRoute>
-                <OrderSuccess />
-              </ProtectedRoute>
-            } />
+              {/* Product Management */}
+              <Route path="products" element={<ProductList />} /> 
+              <Route path="products/add" element={<AddProduct />} />
+              <Route path="products/edit/:id" element={<EditProduct />} />
+              <Route path="products/view/:id" element={<AdminProductDetails />} />
 
-            {/* --- Account Related Routes --- */}
-            <Route path="/account" element={<ProtectedRoute><MyAccount /></ProtectedRoute>} />
-            <Route path="/address" element={<ProtectedRoute><MyAccount /></ProtectedRoute>} />
-            <Route path="/wishlist" element={<ProtectedRoute><MyAccount /></ProtectedRoute>} />
-            <Route path="/orders" element={<ProtectedRoute><MyAccount /></ProtectedRoute>} />
-            
-          </Route>
+              {/* Home Slides Management */}
+              <Route path="home-slides" element={<HomeBannersList />} />
+              <Route path="home-slides/add" element={<AddHomeSlide />} />
 
-          {/* --- Admin Area --- */}
-          <Route path="/admin" element={
-            <ProtectedRoute requiredRole="admin">
-              <AdminLayout />
-            </ProtectedRoute>
-          }>
-            <Route path="dashboard" element={<AdminDashboard />} />
+              {/* Category Management */}
+              <Route path="category" element={<CategoryList />} />
+              <Route path="category/add" element={<AddCategory />} />
 
-            {/* Product Management */}
-            <Route path="products" element={<ProductList />} /> 
-            <Route path="products/add" element={<AddProduct />} />
-            <Route path="products/edit/:id" element={<EditProduct />} />
-            <Route path="products/view/:id" element={<AdminProductDetails />} />
+              {/* Sub Category Management */}
+              <Route path="subcategory" element={<SubCategoryList />} />
+              <Route path="subcategory/add" element={<AddSubCategory />} />
 
-            {/* Home Slides Management */}
-            <Route path="home-slides" element={<HomeBannersList />} />
-            <Route path="home-slides/add" element={<AddHomeSlide />} />
+              {/* Banner Management Routes */}
+              <Route path="banners/home-1" element={<BannerList1 />} />
+              <Route path="banners/home-1/add" element={<AddBanner1 />} />
+              
+              <Route path="banners/home-2" element={<BannerList2 />} />
+              <Route path="banners/home-2/add" element={<AddBanner2 />} />
 
-            {/* Category Management */}
-            <Route path="category" element={<CategoryList />} />
-            <Route path="category/add" element={<AddCategory />} />
+              {/* Logo Management Route */}
+              <Route path="logo" element={<ManageLogo />} />
 
-            {/* Sub Category Management */}
-            <Route path="subcategory" element={<SubCategoryList />} />
-            <Route path="subcategory/add" element={<AddSubCategory />} />
+              {/* User Management */}
+              <Route path="users" element={<UserList />} />
 
-            {/* Banner Management Routes */}
-            <Route path="banners/home-1" element={<BannerList1 />} />
-            <Route path="banners/home-1/add" element={<AddBanner1 />} />
-            
-            <Route path="banners/home-2" element={<BannerList2 />} />
-            <Route path="banners/home-2/add" element={<AddBanner2 />} />
+              {/* Admin Orders */}
+              <Route path="orders" element={<AdminOrders />} />
+            </Route>
 
-            {/* ✅ NEW: Logo Management Route */}
-            <Route path="logo" element={<ManageLogo />} />
-
-            {/* User Management */}
-            <Route path="users" element={<UserList />} />
-
-            {/* Admin Orders */}
-            <Route path="orders" element={<AdminOrders />} />
-          </Route>
-
-          {/* Catch-all */}
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
+            {/* Catch-all */}
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </CartProvider>
       </AuthProvider>
     </BrowserRouter>
   );
