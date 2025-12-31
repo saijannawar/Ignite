@@ -66,10 +66,10 @@ const CategorySidebar = ({ isOpen, onClose }) => {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50">
           <div className="flex items-center gap-2">
-            <div className="bg-[#ff4d4d] text-white p-1.5 rounded">
+            <div className="bg-[#734F96] text-white p-1.5 rounded">
                <ShoppingCart className="w-4 h-4" />
             </div>
-            <span className="font-bold text-lg tracking-tight text-gray-800">CLASSY<span className="text-[#ff4d4d]">SHOP</span></span>
+            <span className="font-bold text-lg tracking-tight text-gray-800">IGNITE<span className="text-[#C569E0]">NOW</span></span>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white rounded-full text-gray-500 transition-colors">
             <X size={24} />
@@ -78,9 +78,9 @@ const CategorySidebar = ({ isOpen, onClose }) => {
 
         {/* User Greeting (Optional) */}
         {currentUser && (
-          <div className="px-5 py-3 bg-red-50 border-b border-red-100 flex items-center gap-2">
-            <User size={16} className="text-[#ff4d4d]" />
-            <span className="text-sm font-medium text-[#ff4d4d]">Hi, {currentUser.displayName || "User"}</span>
+          <div className="px-5 py-3 bg-[#fdfaff] border-b border-purple-100 flex items-center gap-2">
+            <User size={16} className="text-[#6A1B9A]" />
+            <span className="text-sm font-medium text-[#C569E0]">Hi, {currentUser.displayName || "User"}</span>
           </div>
         )}
 
@@ -109,13 +109,13 @@ const CategorySidebar = ({ isOpen, onClose }) => {
                       <div className="flex items-center gap-3">
                          {/* Optional: Show small image if available */}
                          {/* <img src={cat.imageUrl} className="w-6 h-6 object-contain" /> */}
-                         <span className={`font-medium text-sm ${isExpanded ? 'text-[#ff4d4d]' : 'text-gray-700'}`}>
+                         <span className={`font-medium text-sm ${isExpanded ? 'text-[#734F96]' : 'text-gray-700'}`}>
                            {cat.name}
                          </span>
                       </div>
                       {/* Only show +/- if there are children, otherwise show generic arrow or nothing */}
                       {children.length > 0 && (
-                        isExpanded ? <Minus size={14} className="text-[#ff4d4d]" /> : <Plus size={14} className="text-gray-400" />
+                        isExpanded ? <Minus size={14} className="text-[#734F96]" /> : <Plus size={14} className="text-gray-400" />
                       )}
                     </div>
                     
@@ -128,7 +128,7 @@ const CategorySidebar = ({ isOpen, onClose }) => {
                               <Link 
                                 to={`/shop?category=${cat.id}&subcategory=${subItem.id}`} // Example Link
                                 onClick={onClose}
-                                className="block py-2.5 pl-4 text-sm text-gray-500 hover:text-[#ff4d4d] border-l-2 border-transparent hover:border-[#ff4d4d] transition-all"
+                                className="block py-2.5 pl-4 text-sm text-gray-500 hover:text-[#734F96] border-l-2 border-transparent hover:border-[#734F96] transition-all"
                               >
                                 {subItem.name}
                               </Link>
@@ -157,7 +157,7 @@ const CategorySidebar = ({ isOpen, onClose }) => {
             </button>
           ) : (
             <Link to="/login" onClick={onClose}>
-              <button className="w-full py-3 bg-[#ff4d4d] text-white font-bold rounded-lg shadow-md hover:bg-red-600 transition-colors">
+              <button className="w-full py-3 bg-[#734F96] text-white font-bold rounded-lg shadow-md hover:bg-[#5e3f7a] transition-colors">
                 Login / Register
               </button>
             </Link>

@@ -1,11 +1,13 @@
 import React, { useEffect, useRef } from 'react';
-import { X, Trash2 } from 'lucide-react';
+import { X, Trash2, Plus, Minus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 
 export default function CartDrawer() {
   const { 
     cartItems, 
+    addToCart, // Re-using addToCart to increase quantity
+    decreaseQuantity, // Need to make sure this is exported from CartContext
     removeFromCart, 
     cartTotal, 
     cartCount, 
@@ -28,14 +30,13 @@ export default function CartDrawer() {
   }, [isCartOpen, closeCart]);
 
   return (
-    // ✅ FIX 1: Increased z-index to 100 to appear ABOVE the bottom navigation bar
+    // Z-index 100 ensures it is above navbar
     <div className={`fixed inset-0 z-[100] flex justify-end transition-all duration-500 ease-in-out ${
       isCartOpen ? 'bg-black/50 backdrop-blur-sm visible' : 'bg-transparent invisible pointer-events-none'
     }`}>
       
       <div 
         ref={drawerRef}
-        // ✅ FIX 2: Changed h-full to h-[100dvh] to fit mobile screens perfectly without scroll issues
         className={`w-full max-w-sm bg-white h-[100dvh] shadow-2xl flex flex-col transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) ${
           isCartOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
@@ -57,16 +58,16 @@ export default function CartDrawer() {
             <div className="flex flex-col items-center justify-center h-full text-gray-400 space-y-3 animate-in fade-in duration-700">
               <span className="text-5xl opacity-20">🛍️</span>
               <p className="font-medium">Your cart is empty</p>
-              <button onClick={closeCart} className="text-[#ff4d4d] font-bold text-sm hover:underline uppercase tracking-wide">
+              <button onClick={closeCart} className="text-[#734F96] font-bold text-sm hover:underline uppercase tracking-wide">
                 Start Shopping
               </button>
             </div>
           ) : (
             cartItems.map((item) => (
-              <div key={item.id} className="flex gap-4 group animate-in slide-in-from-right-4 duration-500 fill-mode-backwards">
+              <div key={item.id} className="flex gap-4 group animate-in slide-in-from-right-4 duration-500 fill-mode-backwards border-b border-gray-50 pb-4 last:border-0 last:pb-0">
                 {/* Image */}
                 <div className="w-20 h-20 bg-gray-50 rounded-lg border border-gray-100 flex-shrink-0 flex items-center justify-center p-2">
-                  <img src={item.imageUrl || item.images?.[0]} alt={item.name} className="max-w-full max-h-full object-contain mix-blend-multiply" />
+                  <img src={item.imageUrl || item.images?.[0] || item.img} alt={item.name} className="max-w-full max-h-full object-contain mix-blend-multiply" />
                 </div>
                 
                 {/* Info */}
@@ -76,17 +77,34 @@ export default function CartDrawer() {
                       <h3 className="text-sm font-bold text-gray-800 line-clamp-2 leading-snug">{item.name}</h3>
                       <button 
                         onClick={() => removeFromCart(item.id)}
-                        className="text-gray-300 hover:text-red-500 transition-colors"
+                        className="text-gray-300 hover:text-red-500 transition-colors p-1"
                       >
                         <Trash2 size={16} />
                       </button>
                     </div>
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{item.brand}</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mt-1">{item.brand || 'Brand'}</span>
                   </div>
                   
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded font-medium">Qty: {item.quantity}</span>
-                    <span className="font-bold text-[#ff4d4d]">₹{item.price * item.quantity}</span>
+                  <div className="flex items-center justify-between mt-3">
+                    {/* Quantity Controls */}
+                    <div className="flex items-center border border-gray-200 rounded-lg">
+                        <button 
+                            onClick={() => decreaseQuantity(item.id)}
+                            className="p-1.5 hover:bg-gray-50 text-gray-500 transition-colors disabled:opacity-50"
+                            disabled={item.quantity <= 1}
+                        >
+                            <Minus size={12} />
+                        </button>
+                        <span className="text-xs font-bold text-gray-800 w-6 text-center">{item.quantity}</span>
+                        <button 
+                            onClick={() => addToCart(item)}
+                            className="p-1.5 hover:bg-gray-50 text-gray-500 transition-colors"
+                        >
+                            <Plus size={12} />
+                        </button>
+                    </div>
+
+                    <span className="font-bold text-[#734F96]">₹{(item.price * item.quantity).toLocaleString()}</span>
                   </div>
                 </div>
               </div>
@@ -96,11 +114,10 @@ export default function CartDrawer() {
 
         {/* Footer */}
         {cartItems.length > 0 && (
-          // ✅ FIX 3: Added 'safe' padding bottom if needed, but z-index 100 should fix the overlap.
           <div className="p-5 border-t border-gray-100 bg-gray-50/80 backdrop-blur-md">
             <div className="flex justify-between items-center mb-4 text-sm">
               <span className="text-gray-500 font-medium">Subtotal</span>
-              <span className="font-bold text-gray-800 text-lg">₹{cartTotal}</span>
+              <span className="font-bold text-gray-800 text-lg">₹{cartTotal.toLocaleString()}</span>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -112,7 +129,7 @@ export default function CartDrawer() {
               </button>
               <button 
                 onClick={() => { closeCart(); navigate('/checkout'); }}
-                className="bg-[#ff4d4d] text-white py-3.5 rounded-xl font-bold text-xs uppercase hover:bg-red-600 transition-all shadow-lg shadow-red-200"
+                className="bg-[#734F96] text-white py-3.5 rounded-xl font-bold text-xs uppercase hover:bg-[#5e3f7a] transition-all shadow-lg shadow-purple-200"
               >
                 Checkout
               </button>
