@@ -6,8 +6,8 @@ import { useCart } from '../../context/CartContext';
 export default function CartDrawer() {
   const { 
     cartItems, 
-    addToCart, // Re-using addToCart to increase quantity
-    decreaseQuantity, // Need to make sure this is exported from CartContext
+    addToCart, 
+    decreaseQuantity, 
     removeFromCart, 
     cartTotal, 
     cartCount, 
@@ -58,7 +58,7 @@ export default function CartDrawer() {
             <div className="flex flex-col items-center justify-center h-full text-gray-400 space-y-3 animate-in fade-in duration-700">
               <span className="text-5xl opacity-20">🛍️</span>
               <p className="font-medium">Your cart is empty</p>
-              <button onClick={closeCart} className="text-[#734F96] font-bold text-sm hover:underline uppercase tracking-wide">
+              <button onClick={closeCart} className="text-[#7D2596] font-bold text-sm hover:underline uppercase tracking-wide">
                 Start Shopping
               </button>
             </div>
@@ -104,7 +104,7 @@ export default function CartDrawer() {
                         </button>
                     </div>
 
-                    <span className="font-bold text-[#734F96]">₹{(item.price * item.quantity).toLocaleString()}</span>
+                    <span className="font-bold text-[#7D2596]">₹{(item.price * item.quantity).toLocaleString()}</span>
                   </div>
                 </div>
               </div>
@@ -129,7 +129,7 @@ export default function CartDrawer() {
               </button>
               <button 
                 onClick={() => { closeCart(); navigate('/checkout'); }}
-                className="bg-[#734F96] text-white py-3.5 rounded-xl font-bold text-xs uppercase hover:bg-[#5e3f7a] transition-all shadow-lg shadow-purple-200"
+                className="bg-[#7D2596] text-white py-3.5 rounded-xl font-bold text-xs uppercase hover:bg-[#631d76] transition-all shadow-lg shadow-purple-200"
               >
                 Checkout
               </button>

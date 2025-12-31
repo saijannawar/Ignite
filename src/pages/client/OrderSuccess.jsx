@@ -7,7 +7,8 @@ export default function OrderSuccess() {
   const { currentUser } = useAuth();
 
   return (
-    <div className="bg-[#f8f9fa] min-h-screen flex items-center justify-center font-sans px-4">
+    // Updated background to #f3e5f5 to match other pages
+    <div className="bg-[#f3e5f5] min-h-screen flex items-center justify-center font-sans px-4">
       <div className="w-full max-w-3xl text-center">
         
         {/* Animated Success Icon */}
@@ -27,10 +28,10 @@ export default function OrderSuccess() {
           Order Invoice sent to your email <span className="font-bold text-gray-800">{currentUser?.email || 'your-email@example.com'}</span>
         </p>
 
-        {/* Back Home Button */}
+        {/* Back Home Button - Updated to #7b1fa2 */}
         <Link 
           to="/" 
-          className="inline-block px-8 py-3 bg-white border border-[#734F96] text-[#734F96] font-bold text-sm rounded hover:bg-[#734F96] hover:text-white transition-all uppercase tracking-wide shadow-sm"
+          className="inline-block px-8 py-3 bg-white border border-[#7b1fa2] text-[#7b1fa2] font-bold text-sm rounded hover:bg-[#7b1fa2] hover:text-white transition-all uppercase tracking-wide shadow-sm"
         >
           Back to Home
         </Link>

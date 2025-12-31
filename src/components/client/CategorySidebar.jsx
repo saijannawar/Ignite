@@ -66,10 +66,10 @@ const CategorySidebar = ({ isOpen, onClose }) => {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50">
           <div className="flex items-center gap-2">
-            <div className="bg-[#734F96] text-white p-1.5 rounded">
+            <div className="bg-[#7D2596] text-white p-1.5 rounded">
                <ShoppingCart className="w-4 h-4" />
             </div>
-            <span className="font-bold text-lg tracking-tight text-gray-800">IGNITE<span className="text-[#C569E0]">NOW</span></span>
+            <span className="font-bold text-lg tracking-tight text-gray-800">IGNITE<span className="text-[#7D2596]">NOW</span></span>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white rounded-full text-gray-500 transition-colors">
             <X size={24} />
@@ -79,8 +79,8 @@ const CategorySidebar = ({ isOpen, onClose }) => {
         {/* User Greeting (Optional) */}
         {currentUser && (
           <div className="px-5 py-3 bg-[#fdfaff] border-b border-purple-100 flex items-center gap-2">
-            <User size={16} className="text-[#6A1B9A]" />
-            <span className="text-sm font-medium text-[#C569E0]">Hi, {currentUser.displayName || "User"}</span>
+            <User size={16} className="text-[#7D2596]" />
+            <span className="text-sm font-medium text-[#7D2596]">Hi, {currentUser.displayName || "User"}</span>
           </div>
         )}
 
@@ -107,15 +107,13 @@ const CategorySidebar = ({ isOpen, onClose }) => {
                       onClick={() => toggleCategory(cat.id)}
                     >
                       <div className="flex items-center gap-3">
-                         {/* Optional: Show small image if available */}
-                         {/* <img src={cat.imageUrl} className="w-6 h-6 object-contain" /> */}
-                         <span className={`font-medium text-sm ${isExpanded ? 'text-[#734F96]' : 'text-gray-700'}`}>
+                         <span className={`font-medium text-sm ${isExpanded ? 'text-[#7D2596]' : 'text-gray-700'}`}>
                            {cat.name}
                          </span>
                       </div>
                       {/* Only show +/- if there are children, otherwise show generic arrow or nothing */}
                       {children.length > 0 && (
-                        isExpanded ? <Minus size={14} className="text-[#734F96]" /> : <Plus size={14} className="text-gray-400" />
+                        isExpanded ? <Minus size={14} className="text-[#7D2596]" /> : <Plus size={14} className="text-gray-400" />
                       )}
                     </div>
                     
@@ -126,9 +124,9 @@ const CategorySidebar = ({ isOpen, onClose }) => {
                           {children.map((subItem) => (
                             <li key={subItem.id}>
                               <Link 
-                                to={`/shop?category=${cat.id}&subcategory=${subItem.id}`} // Example Link
+                                to={`/shop?category=${cat.id}&subcategory=${subItem.id}`} 
                                 onClick={onClose}
-                                className="block py-2.5 pl-4 text-sm text-gray-500 hover:text-[#734F96] border-l-2 border-transparent hover:border-[#734F96] transition-all"
+                                className="block py-2.5 pl-4 text-sm text-gray-500 hover:text-[#7D2596] border-l-2 border-transparent hover:border-[#7D2596] transition-all"
                               >
                                 {subItem.name}
                               </Link>
@@ -157,7 +155,7 @@ const CategorySidebar = ({ isOpen, onClose }) => {
             </button>
           ) : (
             <Link to="/login" onClick={onClose}>
-              <button className="w-full py-3 bg-[#734F96] text-white font-bold rounded-lg shadow-md hover:bg-[#5e3f7a] transition-colors">
+              <button className="w-full py-3 bg-[#7D2596] text-white font-bold rounded-lg shadow-md hover:bg-[#631d76] transition-colors">
                 Login / Register
               </button>
             </Link>

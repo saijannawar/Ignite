@@ -6,7 +6,7 @@ const About = () => {
     <div className="bg-gray-50 min-h-screen font-sans pb-20">
       
       {/* Hero Section */}
-      <div className="bg-[#734F96] text-white py-20 text-center">
+      <div className="bg-[#7D2596] text-white py-20 text-center">
         <div className="container mx-auto px-4">
           <h1 className="text-4xl md:text-5xl font-extrabold mb-4">About ClassyShop</h1>
           <p className="text-lg md:text-xl opacity-90 max-w-2xl mx-auto">
@@ -32,7 +32,7 @@ const About = () => {
         {/* Features Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center hover:-translate-y-1 transition-transform duration-300">
-            <div className="w-14 h-14 bg-purple-50 text-[#734F96] rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-14 h-14 bg-[#F4EAFB] text-[#7D2596] rounded-full flex items-center justify-center mx-auto mb-4">
               <ShoppingBag size={28} />
             </div>
             <h3 className="font-bold text-gray-800 text-lg mb-2">Huge Variety</h3>
@@ -40,7 +40,7 @@ const About = () => {
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center hover:-translate-y-1 transition-transform duration-300">
-            <div className="w-14 h-14 bg-purple-50 text-[#734F96] rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-14 h-14 bg-[#F4EAFB] text-[#7D2596] rounded-full flex items-center justify-center mx-auto mb-4">
               <Truck size={28} />
             </div>
             <h3 className="font-bold text-gray-800 text-lg mb-2">Fast Delivery</h3>
@@ -48,7 +48,7 @@ const About = () => {
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center hover:-translate-y-1 transition-transform duration-300">
-            <div className="w-14 h-14 bg-purple-50 text-[#734F96] rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-14 h-14 bg-[#F4EAFB] text-[#7D2596] rounded-full flex items-center justify-center mx-auto mb-4">
               <Award size={28} />
             </div>
             <h3 className="font-bold text-gray-800 text-lg mb-2">Quality Assured</h3>
@@ -56,7 +56,7 @@ const About = () => {
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center hover:-translate-y-1 transition-transform duration-300">
-            <div className="w-14 h-14 bg-purple-50 text-[#734F96] rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-14 h-14 bg-[#F4EAFB] text-[#7D2596] rounded-full flex items-center justify-center mx-auto mb-4">
               <Phone size={28} />
             </div>
             <h3 className="font-bold text-gray-800 text-lg mb-2">Support</h3>
@@ -72,7 +72,7 @@ const About = () => {
             href="https://wa.me/919011401920" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 bg-[#734F96] text-white px-8 py-3 rounded-full font-bold shadow-lg hover:bg-[#5e3f7a] transition-colors"
+            className="inline-flex items-center gap-2 bg-[#7D2596] text-white px-8 py-3 rounded-full font-bold shadow-lg hover:bg-[#631d76] transition-colors"
           >
             Contact via WhatsApp
           </a>

@@ -2,14 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Lock, CreditCard, Plus, X, Trash2, Edit2, Loader } from 'lucide-react'; 
+import { MapPin, CreditCard, Trash2, Loader } from 'lucide-react'; 
 import { 
   getUserAddresses, 
   addUserAddress, 
   deleteUserAddress, 
-  updateUserAddress,
-  placeOrder 
+  updateUserAddress 
 } from '../../services/productService'; 
+
+// ✅ IMPORT FIREBASE FUNCTIONS
+import { db } from '../../config/firebase'; 
+import { 
+  collection, 
+  doc, 
+  writeBatch, 
+  serverTimestamp, 
+  getDoc 
+} from 'firebase/firestore';
 
 export default function Checkout() {
   const { cartItems, cartTotal, clearCart } = useCart();
@@ -96,38 +105,88 @@ export default function Checkout() {
     }
   };
 
-  // HANDLE PLACE ORDER
+  // ✅ UPDATED PLACE ORDER LOGIC (WITH STOCK CHECK & UPDATE)
   const handlePlaceOrder = async () => {
     if (!selectedAddressId) {
       alert("Please select a delivery address.");
       return;
     }
     if (!currentUser) return;
+    if (cartItems.length === 0) return alert("Your cart is empty!");
 
     try {
       setProcessingOrder(true);
       
       const shippingAddress = addresses.find(addr => addr.id === selectedAddressId);
+      
+      // 1. Initialize Batch
+      const batch = writeBatch(db);
 
+      // 2. CHECK STOCK FOR ALL ITEMS FIRST
+      for (const item of cartItems) {
+        const productRef = doc(db, 'products', item.id);
+        const productSnap = await getDoc(productRef);
+        
+        if (!productSnap.exists()) {
+           throw new Error(`Product "${item.name}" no longer exists.`);
+        }
+
+        const currentStock = Number(productSnap.data().stock) || 0;
+        
+        if (currentStock < item.quantity) {
+          alert(`Insufficient stock for "${item.name}". Only ${currentStock} left.`);
+          setProcessingOrder(false);
+          return; // STOP ORDER PROCESS
+        }
+      }
+
+      // 3. CREATE ORDER DOCUMENT
+      const orderRef = doc(collection(db, 'orders'));
       const orderData = {
-        items: cartItems,
+        orderId: orderRef.id,
+        userId: currentUser.uid,
+        customerName: currentUser.displayName || 'User',
+        email: currentUser.email,
+        items: cartItems.map(item => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            image: item.imageUrl || item.images?.[0] || ''
+        })),
         total: cartTotal,
         address: shippingAddress,
         status: 'Processing',
         paymentMethod: 'Cash On Delivery',
         date: new Date().toLocaleDateString('en-GB'),
-        email: currentUser.email,
-        customerName: currentUser.displayName || 'User'
+        createdAt: serverTimestamp(),
       };
 
-      await placeOrder(currentUser.uid, orderData);
+      // Add "Create Order" to batch
+      batch.set(orderRef, orderData);
+
+      // 4. DECREASE STOCK FOR EACH ITEM
+      for (const item of cartItems) {
+        const productRef = doc(db, 'products', item.id);
+        // Fetch fresh data again (optional safety) or trust the previous check
+        const productSnap = await getDoc(productRef);
+        const currentStock = Number(productSnap.data().stock) || 0;
+        const newStock = Math.max(0, currentStock - item.quantity);
+
+        // Add "Update Stock" to batch
+        batch.update(productRef, { stock: newStock });
+      }
+
+      // 5. COMMIT EVERYTHING AT ONCE
+      await batch.commit();
       
+      // Success!
       clearCart();
       navigate('/order-success');
 
     } catch (error) {
       console.error("Order failed", error);
-      alert("Failed to place order. Please try again.");
+      alert("Failed to place order. " + error.message);
     } finally {
       setProcessingOrder(false);
     }
@@ -144,28 +203,33 @@ export default function Checkout() {
                 
                 <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
                    <h2 className="text-lg font-bold text-gray-800">Select Delivery Address</h2>
-                   <button onClick={handleOpenAdd} className="text-[#734F96] text-xs font-bold uppercase border border-[#734F96] px-4 py-2 rounded hover:bg-purple-50 transition-colors">+ Add New Address</button>
+                   <button onClick={handleOpenAdd} className="text-[#7D2596] text-xs font-bold uppercase border border-[#7D2596] px-4 py-2 rounded hover:bg-[#F4EAFB] transition-colors">+ Add New Address</button>
                 </div>
                 
-                <div className="grid gap-4">
-                  {addresses.map((addr) => (
-                    <div key={addr.id} onClick={() => setSelectedAddressId(addr.id)} className={`relative border rounded-lg p-5 cursor-pointer transition-all ${selectedAddressId === addr.id ? 'border-[#734F96] bg-[#fdfaff]' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
-                       <div className="absolute top-4 right-4 flex gap-3">
-                        <button onClick={(e) => { e.stopPropagation(); handleOpenEdit(addr); }} className="text-xs font-bold text-[#734F96] hover:underline uppercase">Edit</button>
-                        <button onClick={(e) => handleDelete(e, addr.id)} className="text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
-                      </div>
-                      <div className="flex items-start gap-4">
-                        <div className={`mt-1 w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${selectedAddressId === addr.id ? 'border-[#734F96]' : 'border-gray-400'}`}>
-                          {selectedAddressId === addr.id && <div className="w-2 h-2 bg-[#734F96] rounded-full" />}
+                {loading ? (
+                    <div className="flex justify-center p-10 text-[#7D2596]"><Loader className="animate-spin" /></div>
+                ) : (
+                    <div className="grid gap-4">
+                    {addresses.map((addr) => (
+                        <div key={addr.id} onClick={() => setSelectedAddressId(addr.id)} className={`relative border rounded-lg p-5 cursor-pointer transition-all ${selectedAddressId === addr.id ? 'border-[#7D2596] bg-[#fdfaff]' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
+                           <div className="absolute top-4 right-4 flex gap-3">
+                            <button onClick={(e) => { e.stopPropagation(); handleOpenEdit(addr); }} className="text-xs font-bold text-[#7D2596] hover:underline uppercase">Edit</button>
+                            <button onClick={(e) => handleDelete(e, addr.id)} className="text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
+                          </div>
+                          <div className="flex items-start gap-4">
+                            <div className={`mt-1 w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${selectedAddressId === addr.id ? 'border-[#7D2596]' : 'border-gray-400'}`}>
+                              {selectedAddressId === addr.id && <div className="w-2 h-2 bg-[#7D2596] rounded-full" />}
+                            </div>
+                            <div className="flex-1">
+                               <p className="font-bold text-sm text-gray-800">{addr.phone}</p>
+                               <p className="text-xs text-gray-500">{addr.line1}, {addr.city} - {addr.pincode}</p>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex-1">
-                           <p className="font-bold text-sm text-gray-800">{addr.phone}</p>
-                           <p className="text-xs text-gray-500">{addr.line1}, {addr.city} - {addr.pincode}</p>
-                        </div>
-                      </div>
+                      ))}
+                      {addresses.length === 0 && <p className="text-gray-400 text-center">No addresses found. Please add one.</p>}
                     </div>
-                  ))}
-                </div>
+                )}
              </div>
           </div>
 
@@ -192,16 +256,16 @@ export default function Checkout() {
               <div className="border-t border-gray-100 pt-4 mb-6">
                 <div className="flex justify-between items-center text-sm font-bold text-gray-800 text-lg mt-2">
                   <span>Total</span>
-                  <span className="text-[#734F96]">₹{cartTotal}</span>
+                  <span className="text-[#7D2596]">₹{cartTotal}</span>
                 </div>
               </div>
 
               <div className="space-y-3">
                 <button 
                    onClick={handlePlaceOrder} 
-                   disabled={!selectedAddressId || processingOrder}
+                   disabled={!selectedAddressId || processingOrder || cartItems.length === 0}
                    className={`w-full py-3 text-white font-bold text-sm uppercase rounded flex items-center justify-center gap-2 transition shadow-lg 
-                     ${!selectedAddressId ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#734F96] hover:bg-[#5e3f7a]'}`}
+                     ${!selectedAddressId || cartItems.length === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#7D2596] hover:bg-[#631d76]'}`}
                 >
                   {processingOrder ? <Loader className="animate-spin" size={16} /> : <CreditCard size={16} />}
                   {processingOrder ? 'Processing...' : 'Cash On Delivery'}
@@ -219,23 +283,25 @@ export default function Checkout() {
              <div className="bg-white w-full max-w-lg rounded-lg shadow-2xl p-6">
                 <h3 className="text-lg font-bold mb-4 text-gray-800">{isEditing ? 'Edit' : 'Add'} Address</h3>
                 
-                <input className="w-full p-3 border border-gray-200 rounded mb-3 focus:outline-none focus:border-[#734F96]" placeholder="Line 1 (House No, Building, Street)" value={newAddress.line1} onChange={e => setNewAddress({...newAddress, line1: e.target.value})} />
+                <input className="w-full p-3 border border-gray-200 rounded mb-3 focus:outline-none focus:border-[#7D2596]" placeholder="Line 1 (House No, Building, Street)" value={newAddress.line1} onChange={e => setNewAddress({...newAddress, line1: e.target.value})} />
                 
                 <div className="grid grid-cols-2 gap-3 mb-3">
-                    <input className="w-full p-3 border border-gray-200 rounded focus:outline-none focus:border-[#734F96]" placeholder="City" value={newAddress.city} onChange={e => setNewAddress({...newAddress, city: e.target.value})} />
-                    <input className="w-full p-3 border border-gray-200 rounded focus:outline-none focus:border-[#734F96]" placeholder="State" value={newAddress.state} onChange={e => setNewAddress({...newAddress, state: e.target.value})} />
+                    <input className="w-full p-3 border border-gray-200 rounded focus:outline-none focus:border-[#7D2596]" placeholder="City" value={newAddress.city} onChange={e => setNewAddress({...newAddress, city: e.target.value})} />
+                    <input className="w-full p-3 border border-gray-200 rounded focus:outline-none focus:border-[#7D2596]" placeholder="State" value={newAddress.state} onChange={e => setNewAddress({...newAddress, state: e.target.value})} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mb-3">
-                    <input className="w-full p-3 border border-gray-200 rounded focus:outline-none focus:border-[#734F96]" placeholder="Pincode" maxLength="6" value={newAddress.pincode} onChange={e => setNewAddress({...newAddress, pincode: e.target.value})} />
-                    <input className="w-full p-3 border border-gray-200 rounded focus:outline-none focus:border-[#734F96]" placeholder="Country" value={newAddress.country} onChange={e => setNewAddress({...newAddress, country: e.target.value})} />
+                    <input className="w-full p-3 border border-gray-200 rounded focus:outline-none focus:border-[#7D2596]" placeholder="Pincode" maxLength="6" value={newAddress.pincode} onChange={e => setNewAddress({...newAddress, pincode: e.target.value})} />
+                    <input className="w-full p-3 border border-gray-200 rounded focus:outline-none focus:border-[#7D2596]" placeholder="Country" value={newAddress.country} onChange={e => setNewAddress({...newAddress, country: e.target.value})} />
                 </div>
 
-                <input className="w-full p-3 border border-gray-200 rounded mb-6 focus:outline-none focus:border-[#734F96]" placeholder="Phone Number" maxLength="10" value={newAddress.phone} onChange={e => setNewAddress({...newAddress, phone: e.target.value})} />
+                <input className="w-full p-3 border border-gray-200 rounded mb-6 focus:outline-none focus:border-[#7D2596]" placeholder="Phone Number" maxLength="10" value={newAddress.phone} onChange={e => setNewAddress({...newAddress, phone: e.target.value})} />
                 
                 <div className="flex justify-end gap-3">
                    <button onClick={() => setShowAddressModal(false)} className="px-5 py-2 text-gray-500 font-medium hover:bg-gray-50 rounded">Cancel</button>
-                   <button onClick={handleSaveAddress} className="px-6 py-2 bg-[#734F96] text-white font-bold rounded shadow-md hover:bg-[#5e3f7a] transition-colors">Save Address</button>
+                   <button onClick={handleSaveAddress} disabled={savingAddress} className="px-6 py-2 bg-[#7D2596] text-white font-bold rounded shadow-md hover:bg-[#631d76] transition-colors">
+                     {savingAddress ? 'Saving...' : 'Save Address'}
+                   </button>
                 </div>
              </div>
          </div>
