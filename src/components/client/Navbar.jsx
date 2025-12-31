@@ -129,9 +129,15 @@ export default function Navbar({ onOpenSidebar }) {
             </button>
 
             <Link to="/" className="flex items-center gap-2 group">
-              <div className="bg-[#7D2596] text-white p-2 rounded-lg group-hover:bg-[#631d76] transition-colors">
-                  <ShoppingCart className="w-5 h-5" />
-              </div>
+              
+              {/* ✅ LOGO IMAGE (Replaces the purple icon div) */}
+              <img 
+                 src="/vite.svg" 
+                 alt="IgniteNow Logo" 
+                 className="h-10 w-10 object-contain" 
+              />
+
+              {/* Text Brand Name (Kept as requested) */}
               <div className="flex flex-col">
                   <span className="text-xl font-extrabold tracking-tight text-gray-800 leading-none">
                     IGNITE<span className="text-[#C569E0]">NOW</span>
@@ -176,7 +182,6 @@ export default function Navbar({ onOpenSidebar }) {
                       <ul className="space-y-2">
                         {filteredCats.map(cat => (
                           <li key={cat.id}>
-                             {/* ✅ FIX: Use 'cat.id' in URL so filtering works, but show 'cat.name' */}
                              <Link to={`/shop?category=${cat.id}`} onClick={clearSearch} className="block hover:bg-gray-50 p-1 rounded">
                                <div className="text-sm font-semibold text-gray-800 hover:text-[#7D2596]">{cat.name}</div>
                              </Link>
@@ -241,7 +246,6 @@ export default function Navbar({ onOpenSidebar }) {
                          }
                        </div>
                        
-                       {/* ✅ FIX: Use 'topCategory.id' in URL so the Shop page filter matches the product data */}
                        <Link 
                          to={`/shop?category=${topCategory.id}`} 
                          onClick={clearSearch}
@@ -262,7 +266,7 @@ export default function Navbar({ onOpenSidebar }) {
 
           {/* 3. RIGHT: User Actions */}
           <div className="flex items-center gap-6">
-            {/* USER PROFILE SECTION - RESTORED FULLY */}
+            {/* USER PROFILE SECTION */}
             {currentUser ? (
               <div className="relative" ref={dropdownRef}>
                 <div 
