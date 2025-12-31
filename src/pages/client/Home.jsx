@@ -57,12 +57,11 @@ export default function Home() {
           };
         });
 
-        // ✅ LOGIC UPDATE: Sort by Reviews (High to Low)
         const popularSorted = [...formattedProducts].sort((a, b) => b.reviews - a.reviews);
 
         setProducts(popularSorted);
         setFilteredProducts(popularSorted);
-        setLatestProducts(formattedProducts.slice(0, 10)); // Latest can remain mostly recent or sliced
+        setLatestProducts(formattedProducts.slice(0, 10)); 
 
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -101,7 +100,7 @@ export default function Home() {
     navigate(`/shop?category=${catIdentifier}`);
   };
 
-  if (loading) return <div className="h-screen flex justify-center items-center"><Loader className="animate-spin text-[#734F96]" /></div>;
+  if (loading) return <div className="h-screen flex justify-center items-center"><Loader className="animate-spin text-[#7D2596]" /></div>;
 
   return (
     <div className="w-full min-h-screen font-sans">
@@ -125,7 +124,7 @@ export default function Home() {
                 <button onClick={nextSlide} className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-white/40 hover:bg-white text-black p-3 rounded-full backdrop-blur-sm transition-all shadow-md"><ChevronRight size={24} /></button>
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
                   {heroSlides.map((_, idx) => (
-                    <button key={idx} onClick={() => setCurrentSlide(idx)} className={`w-2 h-2 rounded-full transition-all ${idx === currentSlide ? 'bg-[#734F96] w-6' : 'bg-white/60 hover:bg-white'}`} />
+                    <button key={idx} onClick={() => setCurrentSlide(idx)} className={`w-2 h-2 rounded-full transition-all ${idx === currentSlide ? 'bg-[#7D2596] w-6' : 'bg-white/60 hover:bg-white'}`} />
                   ))}
                 </div>
               </>
@@ -137,12 +136,12 @@ export default function Home() {
         <div className="container mx-auto px-4">
             <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide justify-start lg:justify-center"> 
               {categories.map((cat) => (
-                  <Link to={`/shop?category=${cat.id}`} key={cat.id} className="group min-w-[140px] w-[140px] h-[180px] flex flex-col items-center justify-between bg-white border border-gray-100 rounded-xl hover:shadow-lg hover:border-[#734F96]/30 transition-all duration-300 cursor-pointer p-4">
+                  <Link to={`/shop?category=${cat.id}`} key={cat.id} className="group min-w-[140px] w-[140px] h-[180px] flex flex-col items-center justify-between bg-white border border-gray-100 rounded-xl hover:shadow-lg hover:border-[#7D2596]/30 transition-all duration-300 cursor-pointer p-4">
                     <div className="w-20 h-20 flex items-center justify-center flex-grow">
                       <img src={cat.imageUrl} alt={cat.name} className="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-300" />
                     </div>
                     <div className="h-[40px] flex items-center justify-center w-full">
-                        <span className="text-sm font-semibold text-gray-700 group-hover:text-[#734F96] text-center line-clamp-2 leading-tight break-words w-full">{cat.name}</span>
+                        <span className="text-sm font-semibold text-gray-700 group-hover:text-[#7D2596] text-center line-clamp-2 leading-tight break-words w-full">{cat.name}</span>
                     </div>
                   </Link>
                 ))}
@@ -155,20 +154,17 @@ export default function Home() {
         {/* POPULAR PRODUCTS */}
         <div className="container mx-auto px-4 mb-2 relative group/slider"> 
           
-          {/* ✅ FIXED LAYOUT: Using flex-wrap and proper spacing */}
           <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-gray-200 pb-2 mb-4 gap-4"> 
             
-            {/* Title (Left) */}
             <div className="flex-shrink-0">
               <h2 className="text-2xl font-bold text-gray-800">Popular Products</h2>
             </div>
 
-            {/* Categories (Right - Scrollable but anchored right on desktop) */}
             <div className="flex-1 overflow-hidden w-full md:w-auto">
                 <div className="flex gap-6 overflow-x-auto pb-2 scrollbar-hide w-full md:justify-end">
-                    <button onClick={() => setActiveTab('ALL')} className={`whitespace-nowrap pb-1 text-sm font-bold uppercase transition-all border-b-[3px] ${activeTab === 'ALL' ? 'text-[#734F96] border-[#734F96]' : 'text-gray-500 border-transparent hover:text-gray-800'}`}>ALL</button>
+                    <button onClick={() => setActiveTab('ALL')} className={`whitespace-nowrap pb-1 text-sm font-bold uppercase transition-all border-b-[3px] ${activeTab === 'ALL' ? 'text-[#7D2596] border-[#7D2596]' : 'text-gray-500 border-transparent hover:text-gray-800'}`}>ALL</button>
                     {categories.map((cat) => (
-                    <button key={cat.id} onClick={() => setActiveTab(cat.id)} className={`whitespace-nowrap pb-1 text-sm font-bold uppercase transition-all border-b-[3px] ${activeTab === cat.id ? 'text-[#734F96] border-[#734F96]' : 'text-gray-500 border-transparent hover:text-gray-800'}`}>{cat.name}</button>
+                    <button key={cat.id} onClick={() => setActiveTab(cat.id)} className={`whitespace-nowrap pb-1 text-sm font-bold uppercase transition-all border-b-[3px] ${activeTab === cat.id ? 'text-[#7D2596] border-[#7D2596]' : 'text-gray-500 border-transparent hover:text-gray-800'}`}>{cat.name}</button>
                     ))}
                 </div>
             </div>
@@ -176,8 +172,8 @@ export default function Home() {
           </div>
 
           <div className="relative">
-            <button onClick={() => scrollContainer(productContainerRef, 'left')} className="hidden md:flex absolute -left-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 bg-white border border-gray-200 rounded-full shadow-lg items-center justify-center text-gray-600 hover:bg-[#734F96] hover:text-white hover:border-[#734F96] transition-all opacity-0 group-hover/slider:opacity-100"><ChevronLeft size={24} /></button>
-            <button onClick={() => scrollContainer(productContainerRef, 'right')} className="hidden md:flex absolute -right-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 bg-white border border-gray-200 rounded-full shadow-lg items-center justify-center text-gray-600 hover:bg-[#734F96] hover:text-white hover:border-[#734F96] transition-all opacity-0 group-hover/slider:opacity-100"><ChevronRight size={24} /></button>
+            <button onClick={() => scrollContainer(productContainerRef, 'left')} className="hidden md:flex absolute -left-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 bg-white border border-gray-200 rounded-full shadow-lg items-center justify-center text-gray-600 hover:bg-[#7D2596] hover:text-white hover:border-[#7D2596] transition-all opacity-0 group-hover/slider:opacity-100"><ChevronLeft size={24} /></button>
+            <button onClick={() => scrollContainer(productContainerRef, 'right')} className="hidden md:flex absolute -right-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 bg-white border border-gray-200 rounded-full shadow-lg items-center justify-center text-gray-600 hover:bg-[#7D2596] hover:text-white hover:border-[#7D2596] transition-all opacity-0 group-hover/slider:opacity-100"><ChevronRight size={24} /></button>
             
             <div ref={productContainerRef} className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide scroll-smooth snap-x snap-mandatory px-1"> 
               {filteredProducts.map((product) => (
@@ -192,8 +188,8 @@ export default function Home() {
         {/* FREE SHIPPING & BANNER LIST 1 */}
         <div className="container mx-auto px-4 max-w-7xl mt-0 space-y-2 mb-2">
           
-          <div className="w-full bg-white border border-[#734F96] rounded-lg p-3 flex flex-col md:flex-row items-center justify-between shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
-            <div className="absolute top-0 left-0 w-2 h-full bg-[#734F96]"></div>
+          <div className="w-full bg-white border border-[#7D2596] rounded-lg p-3 flex flex-col md:flex-row items-center justify-between shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
+            <div className="absolute top-0 left-0 w-2 h-full bg-[#7D2596]"></div>
             <div className="flex items-center gap-4 z-10"> 
               <Truck size={32} className="text-[#333]" strokeWidth={1.5} /> 
               <div>
@@ -206,8 +202,8 @@ export default function Home() {
 
           {homeList1Banners.length > 0 && (
             <div className="relative group/bannerSlider">
-              <button onClick={() => scrollContainer(bannerContainerRef, 'left')} className="hidden md:flex absolute -left-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 bg-white border border-gray-200 rounded-full shadow-lg items-center justify-center text-gray-600 hover:bg-[#734F96] hover:text-white hover:border-[#734F96] transition-all opacity-0 group-hover/bannerSlider:opacity-100"><ChevronLeft size={24} /></button>
-              <button onClick={() => scrollContainer(bannerContainerRef, 'right')} className="hidden md:flex absolute -right-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 bg-white border border-gray-200 rounded-full shadow-lg items-center justify-center text-gray-600 hover:bg-[#734F96] hover:text-white hover:border-[#734F96] transition-all opacity-0 group-hover/bannerSlider:opacity-100"><ChevronRight size={24} /></button>
+              <button onClick={() => scrollContainer(bannerContainerRef, 'left')} className="hidden md:flex absolute -left-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 bg-white border border-gray-200 rounded-full shadow-lg items-center justify-center text-gray-600 hover:bg-[#7D2596] hover:text-white hover:border-[#7D2596] transition-all opacity-0 group-hover/bannerSlider:opacity-100"><ChevronLeft size={24} /></button>
+              <button onClick={() => scrollContainer(bannerContainerRef, 'right')} className="hidden md:flex absolute -right-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 bg-white border border-gray-200 rounded-full shadow-lg items-center justify-center text-gray-600 hover:bg-[#7D2596] hover:text-white hover:border-[#7D2596] transition-all opacity-0 group-hover/bannerSlider:opacity-100"><ChevronRight size={24} /></button>
               
               <div ref={bannerContainerRef} className="flex gap-4 overflow-x-auto pb-1 scrollbar-hide scroll-smooth snap-x snap-mandatory">
                 {homeList1Banners.map((banner) => (
@@ -216,11 +212,11 @@ export default function Home() {
                     <div className={`absolute inset-0 p-4 flex flex-col justify-center z-10 ${banner.alignInfo === 'Right' ? 'items-end text-right' : 'items-start text-left'}`}>
                       {banner.category && <span className="bg-white/90 backdrop-blur-sm text-gray-800 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider mb-2 shadow-sm">{banner.category}</span>}
                       <h3 className="text-lg font-extrabold text-gray-900 leading-tight mb-2 max-w-[70%] drop-shadow-sm line-clamp-2">{banner.title}</h3>
-                      {banner.price && <div className="text-base font-bold text-[#734F96] mb-3">₹{banner.price}</div>}
+                      {banner.price && <div className="text-base font-bold text-[#7D2596] mb-3">₹{banner.price}</div>}
                       
                       <button 
                         onClick={() => handleBannerClick(banner)}
-                        className="flex items-center gap-2 text-[10px] font-bold uppercase border-b-2 border-gray-800 pb-1 hover:text-[#734F96] hover:border-[#734F96] transition-colors"
+                        className="flex items-center gap-2 text-[10px] font-bold uppercase border-b-2 border-gray-800 pb-1 hover:text-[#7D2596] hover:border-[#7D2596] transition-colors"
                       >
                         Shop Now <ArrowRight size={12} />
                       </button>
@@ -236,11 +232,11 @@ export default function Home() {
         <div className="container mx-auto px-4 mb-2 relative group/latest">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold text-gray-800">Latest Products</h2>
-            <Link to="/shop" className="flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-white hover:bg-[#734F96] transition-all bg-gray-100 px-5 py-2 rounded-full shadow-sm">View All <ArrowRight size={16} /></Link>
+            <Link to="/shop" className="flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-white hover:bg-[#7D2596] transition-all bg-gray-100 px-5 py-2 rounded-full shadow-sm">View All <ArrowRight size={16} /></Link>
           </div>
           <div className="relative">
-            <button onClick={() => scrollContainer(latestProductsRef, 'left')} className="hidden md:flex absolute -left-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 bg-white border border-gray-200 rounded-full shadow-lg items-center justify-center text-gray-600 hover:bg-[#734F96] hover:text-white hover:border-[#734F96] transition-all opacity-0 group-hover/latest:opacity-100"><ChevronLeft size={24} /></button>
-            <button onClick={() => scrollContainer(latestProductsRef, 'right')} className="hidden md:flex absolute -right-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 bg-white border border-gray-200 rounded-full shadow-lg items-center justify-center text-gray-600 hover:bg-[#734F96] hover:text-white hover:border-[#734F96] transition-all opacity-0 group-hover/latest:opacity-100"><ChevronRight size={24} /></button>
+            <button onClick={() => scrollContainer(latestProductsRef, 'left')} className="hidden md:flex absolute -left-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 bg-white border border-gray-200 rounded-full shadow-lg items-center justify-center text-gray-600 hover:bg-[#7D2596] hover:text-white hover:border-[#7D2596] transition-all opacity-0 group-hover/latest:opacity-100"><ChevronLeft size={24} /></button>
+            <button onClick={() => scrollContainer(latestProductsRef, 'right')} className="hidden md:flex absolute -right-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 bg-white border border-gray-200 rounded-full shadow-lg items-center justify-center text-gray-600 hover:bg-[#7D2596] hover:text-white hover:border-[#7D2596] transition-all opacity-0 group-hover/latest:opacity-100"><ChevronRight size={24} /></button>
             <div ref={latestProductsRef} className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide scroll-smooth snap-x snap-mandatory px-1">
               {latestProducts.length === 0 ? <div className="w-full py-10 text-center text-gray-400">No recent products available.</div> : latestProducts.map((product) => (<div key={product.id} className="min-w-[280px] max-w-[280px] flex-shrink-0 snap-center h-full"><ProductCard product={product} /></div>))}
             </div>
@@ -251,8 +247,8 @@ export default function Home() {
         {homeList2Banners.length > 0 && (
           <div className="container mx-auto px-4 max-w-7xl mb-6 relative group/bannerList2">
             <div className="relative">
-              <button onClick={() => scrollContainer(bannerList2Ref, 'left')} className="hidden md:flex absolute -left-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 bg-white border border-gray-200 rounded-full shadow-lg items-center justify-center text-gray-600 hover:bg-[#734F96] hover:text-white hover:border-[#734F96] transition-all opacity-0 group-hover/bannerList2:opacity-100"><ChevronLeft size={24} /></button>
-              <button onClick={() => scrollContainer(bannerList2Ref, 'right')} className="hidden md:flex absolute -right-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 bg-white border border-gray-200 rounded-full shadow-lg items-center justify-center text-gray-600 hover:bg-[#734F96] hover:text-white hover:border-[#734F96] transition-all opacity-0 group-hover/bannerList2:opacity-100"><ChevronRight size={24} /></button>
+              <button onClick={() => scrollContainer(bannerList2Ref, 'left')} className="hidden md:flex absolute -left-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 bg-white border border-gray-200 rounded-full shadow-lg items-center justify-center text-gray-600 hover:bg-[#7D2596] hover:text-white hover:border-[#7D2596] transition-all opacity-0 group-hover/bannerList2:opacity-100"><ChevronLeft size={24} /></button>
+              <button onClick={() => scrollContainer(bannerList2Ref, 'right')} className="hidden md:flex absolute -right-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 bg-white border border-gray-200 rounded-full shadow-lg items-center justify-center text-gray-600 hover:bg-[#7D2596] hover:text-white hover:border-[#7D2596] transition-all opacity-0 group-hover/bannerList2:opacity-100"><ChevronRight size={24} /></button>
               
               <div ref={bannerList2Ref} className="flex gap-4 overflow-x-auto pb-1 scrollbar-hide scroll-smooth snap-x snap-mandatory">
                 {homeList2Banners.map((banner) => (

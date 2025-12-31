@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-// ✅ NEW: Import CartProvider
 import { CartProvider } from './context/CartContext'; 
 
 // Import Pages
@@ -11,7 +10,7 @@ import Home from './pages/client/Home';
 // Import Shop Page
 import Shop from './pages/client/Shop';
 
-// ✅ NEW: Import About Page
+// Import About Page
 import About from './pages/client/About';
 
 // Client Pages (Cart, Checkout, Success)
@@ -19,8 +18,8 @@ import Cart from './pages/client/Cart';
 import Checkout from './pages/client/Checkout';
 import OrderSuccess from './pages/client/OrderSuccess'; 
 
-// Client Side Pages
-import ClientProductDetails from './pages/client/ProductDetails'; 
+// ✅ CORRECTED IMPORT: Points to ClientProductDetails.jsx
+import ClientProductDetails from './pages/client/ClientProductDetails'; 
 import MyAccount from './pages/client/MyAccount'; 
 
 // Import Admin Pages
@@ -88,17 +87,17 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               
-              {/* Client View: Product Details */}
+              {/* ✅ Client View: Product Details */}
               <Route path="/product/:id" element={<ClientProductDetails />} />
 
               {/* Shop Route */}
               <Route path="/shop" element={<Shop />} />
 
-              {/* ✅ NEW: About Route */}
+              {/* About Route */}
               <Route path="/about" element={<About />} />
               
-              {/* Search can also point to Shop or a specific Search page */}
-              <Route path="/search" element={<Placeholder title="Search Products" />} />
+              {/* Search Route */}
+              <Route path="/search" element={<Shop />} /> {/* Redirect search to Shop for now */}
               
               {/* Cart & Checkout Routes */}
               <Route path="/cart" element={<Cart />} />

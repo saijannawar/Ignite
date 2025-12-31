@@ -34,7 +34,7 @@ export default function MobileMenu({ isOpen, onClose }) {
         {/* --- Header Section --- */}
         <div className="flex-none p-5 border-b border-gray-100">
           <div className="flex items-center gap-2 mb-6">
-            <div className="bg-red-500 text-white p-1.5 rounded">
+            <div className="bg-[#7D2596] text-white p-1.5 rounded">
                <ShoppingCart className="w-5 h-5" />
             </div>
             <div className="flex flex-col">
@@ -58,7 +58,7 @@ export default function MobileMenu({ isOpen, onClose }) {
               <li key={index} className="border-b border-gray-50">
                 <button className="w-full flex items-center justify-between p-4 text-gray-600 hover:bg-gray-50 text-left group transition-colors">
                   <span className="font-medium text-[15px]">{cat}</span>
-                  <Plus className="w-4 h-4 text-gray-400 group-hover:text-red-500 transition-colors" />
+                  <Plus className="w-4 h-4 text-gray-400 group-hover:text-[#7D2596] transition-colors" />
                 </button>
               </li>
             ))}
@@ -68,17 +68,17 @@ export default function MobileMenu({ isOpen, onClose }) {
         {/* --- Footer (Logout/Login) --- */}
         <div className="flex-none p-4 border-t border-gray-100 bg-white">
           {currentUser ? (
-             <button 
-               onClick={handleLogout}
-               className="w-full bg-gray-800 text-white py-3 rounded font-bold text-center tracking-wide hover:bg-gray-900 transition-colors"
-             >
-               LOGOUT
-             </button>
+              <button 
+                onClick={handleLogout}
+                className="w-full bg-gray-800 text-white py-3 rounded font-bold text-center tracking-wide hover:bg-gray-900 transition-colors"
+              >
+                LOGOUT
+              </button>
           ) : (
             <Link 
               to="/login" 
               onClick={onClose}
-              className="block w-full bg-[#ff4d4d] text-white py-3 rounded font-bold text-center shadow-md hover:bg-red-600 transition tracking-wide"
+              className="block w-full bg-[#7D2596] text-white py-3 rounded font-bold text-center shadow-md hover:bg-[#631d76] transition tracking-wide"
             >
               Login
             </Link>
