@@ -66,9 +66,12 @@ const CategorySidebar = ({ isOpen, onClose }) => {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50">
           <div className="flex items-center gap-2">
-            <div className="bg-[#7D2596] text-white p-1.5 rounded">
-               <ShoppingCart className="w-4 h-4" />
-            </div>
+            {/* UPDATED: Replaced Shopping Cart Icon with Logo */}
+            <img 
+               src="/vite.svg" 
+               alt="Logo" 
+               className="h-8 w-8 object-contain" 
+            />
             <span className="font-bold text-lg tracking-tight text-gray-800">IGNITE<span className="text-[#7D2596]">NOW</span></span>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white rounded-full text-gray-500 transition-colors">
@@ -107,9 +110,9 @@ const CategorySidebar = ({ isOpen, onClose }) => {
                       onClick={() => toggleCategory(cat.id)}
                     >
                       <div className="flex items-center gap-3">
-                         <span className={`font-medium text-sm ${isExpanded ? 'text-[#7D2596]' : 'text-gray-700'}`}>
-                           {cat.name}
-                         </span>
+                          <span className={`font-medium text-sm ${isExpanded ? 'text-[#7D2596]' : 'text-gray-700'}`}>
+                            {cat.name}
+                          </span>
                       </div>
                       {/* Only show +/- if there are children, otherwise show generic arrow or nothing */}
                       {children.length > 0 && (

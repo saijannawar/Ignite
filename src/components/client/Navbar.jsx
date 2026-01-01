@@ -139,12 +139,18 @@ export default function Navbar({ onOpenSidebar }) {
 
               {/* Text Brand Name (Kept as requested) */}
               <div className="flex flex-col">
-                  <span className="text-xl font-extrabold tracking-tight text-gray-800 leading-none">
-                    IGNITE<span className="text-[#C569E0]">NOW</span>
-                  </span>
-                  <span className="text-[10px] text-gray-400 font-bold tracking-[0.15em] uppercase hidden sm:block">
-                    Ideas Into Reality
-                  </span>
+                  <span className="text-xl font-extrabold tracking-[0.25em] leading-none">
+                  <span className="text-[#A662BE]">I</span>
+                  <span className="text-gray-800">GNITE</span>
+                  
+                </span>
+
+                <span className="text-[10px] font-bold tracking-[0.15em] uppercase hidden sm:block">
+                  
+                  <span className="text-gray-400">Ideas Into Reality</span>
+                </span>
+
+
               </div>
             </Link>
           </div>
