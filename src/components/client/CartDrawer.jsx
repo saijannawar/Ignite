@@ -120,18 +120,12 @@ export default function CartDrawer() {
               <span className="font-bold text-gray-800 text-lg">₹{cartTotal.toLocaleString()}</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1">
               <button 
                 onClick={() => { closeCart(); navigate('/cart'); }}
-                className="bg-white border border-gray-200 text-gray-800 py-3.5 rounded-xl font-bold text-xs uppercase hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
-              >
-                View Cart
-              </button>
-              <button 
-                onClick={() => { closeCart(); navigate('/checkout'); }}
                 className="bg-[#7D2596] text-white py-3.5 rounded-xl font-bold text-xs uppercase hover:bg-[#631d76] transition-all shadow-lg shadow-purple-200"
               >
-                Checkout
+                View Cart
               </button>
             </div>
           </div>

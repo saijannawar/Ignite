@@ -16,25 +16,24 @@ import {
   User
 } from 'lucide-react';
 
-// ✅ ADDED 'getDoc' to imports for fetching Category Name
-import { doc, updateDoc, arrayUnion, getDoc } from "firebase/firestore";
+import { doc, updateDoc, arrayUnion, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../config/firebase"; 
 
 import { getProductById } from '../../services/productService';
 import { useCart } from '../../context/CartContext'; 
+import { useAuth } from '../../context/AuthContext'; // ✅ Import Auth
 
 export default function ClientProductDetails() {
   const { id } = useParams();
   const navigate = useNavigate(); 
   const { addToCart } = useCart(); 
+  const { currentUser } = useAuth(); // ✅ Get logged in user
   
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [mainImage, setMainImage] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('description');
-
-  // ✅ NEW STATE: For the real category name (e.g. "Electronics" instead of ID)
   const [categoryName, setCategoryName] = useState(""); 
   
   // Stats
@@ -47,6 +46,10 @@ export default function ClientProductDetails() {
   const [newReviewComment, setNewReviewComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Wishlist State
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [inWishlist, setInWishlist] = useState(false);
+
   // 1. Fetch Data
   useEffect(() => {
     const fetchProduct = async () => {
@@ -55,14 +58,10 @@ export default function ClientProductDetails() {
         const data = await getProductById(id);
         if (data) {
           setProduct(data);
-          
-          // Handle image URL or array
           const firstImage = data.imageUrl || (data.images && data.images.length > 0 ? data.images[0] : 'https://via.placeholder.com/400');
           setMainImage(firstImage);
           calculateStats(data);
 
-          // ✅ FETCH CATEGORY NAME LOGIC
-          // If the category field looks like an ID (alphanumeric), fetch its real name
           if (data.category) {
             try {
               const catRef = doc(db, "categories", data.category);
@@ -70,11 +69,9 @@ export default function ClientProductDetails() {
               if (catSnap.exists()) {
                 setCategoryName(catSnap.data().name);
               } else {
-                // If ID not found, use the value as is (maybe it was already a name)
                 setCategoryName(data.category);
               }
             } catch (err) {
-              console.log("Could not fetch category name, using ID:", data.category);
               setCategoryName(data.category);
             }
           }
@@ -89,7 +86,24 @@ export default function ClientProductDetails() {
     if (id) fetchProduct();
   }, [id]);
 
-  // Helper to calculate rating/discount
+  // 2. Check if item is already in Wishlist
+  useEffect(() => {
+    const checkWishlist = async () => {
+        if (currentUser && product) {
+            try {
+                const wishlistRef = doc(db, "users", currentUser.uid, "wishlist", product.id);
+                const docSnap = await getDoc(wishlistRef);
+                if (docSnap.exists()) {
+                    setInWishlist(true);
+                }
+            } catch (error) {
+                console.error("Wishlist check error:", error);
+            }
+        }
+    };
+    checkWishlist();
+  }, [currentUser, product]);
+
   const calculateStats = (data) => {
     if (data.reviews && data.reviews.length > 0) {
       const total = data.reviews.reduce((acc, curr) => acc + (Number(curr.rating) || 0), 0);
@@ -119,6 +133,37 @@ export default function ClientProductDetails() {
     ));
   };
 
+  // ✅ ADD TO WISHLIST FUNCTION
+  const handleAddToWishlist = async () => {
+    if (!currentUser) {
+        alert("Please login to use Wishlist");
+        navigate('/login');
+        return;
+    }
+    
+    setWishlistLoading(true);
+    try {
+        const wishlistRef = doc(db, "users", currentUser.uid, "wishlist", product.id);
+        
+        // Add minimal product details to wishlist
+        await setDoc(wishlistRef, {
+            productId: product.id,
+            name: product.name,
+            price: product.price,
+            image: mainImage,
+            addedAt: serverTimestamp()
+        });
+        
+        setInWishlist(true);
+        alert("Added to Wishlist!");
+    } catch (error) {
+        console.error("Error adding to wishlist:", error);
+        alert("Failed to add to wishlist");
+    } finally {
+        setWishlistLoading(false);
+    }
+  };
+
   const handleAddToCart = () => {
       if (product) {
           addToCart({ ...product, quantity });
@@ -126,25 +171,28 @@ export default function ClientProductDetails() {
   };
 
   const handleBuyNow = () => {
+    if (!currentUser) {
+        alert("Please login to checkout");
+        navigate('/login');
+        return;
+    }
     if (product) {
       addToCart({ ...product, quantity });
       navigate('/checkout'); 
     }
   };
 
-  // ✅ SUBMIT REVIEW TO FIREBASE
   const handleSubmitReview = async (e) => {
     e.preventDefault();
     if (!newReviewName.trim() || !newReviewComment.trim()) return;
 
     setIsSubmitting(true);
 
-    // Create new review object
     const newReview = {
         user: newReviewName,
         rating: newReviewRating,
         comment: newReviewComment,
-        date: new Date().toISOString().split('T')[0], // Today's date YYYY-MM-DD
+        date: new Date().toISOString().split('T')[0],
         avatar: "" 
     };
 
@@ -180,17 +228,14 @@ export default function ClientProductDetails() {
   return (
     <div className="bg-white min-h-screen font-sans text-gray-700 pb-24 md:pb-0">
       
-      {/* ✅ UPDATED BREADCRUMBS: Uses 'categoryName' instead of 'product.category' */}
+      {/* Breadcrumbs */}
       <div className="bg-gray-50 py-3 border-b border-gray-100">
         <div className="container mx-auto px-4 max-w-7xl flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wide overflow-hidden whitespace-nowrap">
            <Link to="/" className="hover:text-[#7D2596]">Home</Link> 
            <ChevronRight size={12}/>
-           
-           {/* Link goes to Shop page filtering by the REAL NAME */}
            <Link to={`/shop?category=${categoryName}`} className="hover:text-[#7D2596]">
              {categoryName || 'Loading...'}
            </Link> 
-           
            <ChevronRight size={12}/>
            <span className="text-gray-800 truncate">{product.name}</span>
         </div>
@@ -199,7 +244,7 @@ export default function ClientProductDetails() {
       <div className="container mx-auto px-4 max-w-7xl py-6 lg:py-10">
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
           
-          {/* ================= LEFT COLUMN: IMAGES ================= */}
+          {/* LEFT COLUMN: IMAGES */}
           <div className="lg:w-1/2">
             <div className="sticky top-24 flex gap-4 flex-col-reverse sm:flex-row">
               {/* Thumbnails */}
@@ -239,7 +284,7 @@ export default function ClientProductDetails() {
             </div>
           </div>
 
-          {/* ================= RIGHT COLUMN: INFO ================= */}
+          {/* RIGHT COLUMN: INFO */}
           <div className="lg:w-1/2">
             
             {/* Title & Brand */}
@@ -274,14 +319,14 @@ export default function ClientProductDetails() {
             <div className="flex flex-col gap-4 mb-6">
               
               {/* Quantity Counter */}
-              <div className="flex items-center border border-gray-300 rounded-lg h-14 w-full sm:w-40 bg-white overflow-hidden">
+              <div className="flex items-center border border-gray-300 rounded-lg h-12 w-full sm:w-40 bg-white overflow-hidden">
                  <button 
                    onClick={() => setQuantity(Math.max(1, quantity - 1))} 
                    className="w-12 h-full flex items-center justify-center hover:bg-gray-50 text-gray-500 active:bg-gray-200 transition"
                  >
                    <Minus size={20} />
                  </button>
-                 <div className="flex-1 text-center font-bold text-gray-900 text-xl border-x border-gray-100 flex items-center justify-center h-full">
+                 <div className="flex-1 text-center font-bold text-gray-900 text-lg border-x border-gray-100 flex items-center justify-center h-full">
                    {quantity}
                  </div>
                  <button 
@@ -292,18 +337,18 @@ export default function ClientProductDetails() {
                  </button>
               </div>
 
-              {/* Buttons Container */}
-              <div className="flex flex-col sm:flex-row gap-3 w-full">
+              {/* ✅ ALIGNED BUTTONS (Full width on mobile, side-by-side) */}
+              <div className="flex gap-3 w-full">
                   <button 
                     onClick={handleAddToCart}
-                    className="flex-1 h-14 px-6 border-2 border-[#7D2596] text-[#7D2596] hover:bg-[#7D2596] hover:text-white text-base font-bold uppercase rounded-lg flex items-center justify-center gap-2 transition-all duration-300"
+                    className="flex-1 h-12 px-6 border-2 border-[#7D2596] text-[#7D2596] hover:bg-[#7D2596] hover:text-white text-sm font-bold uppercase rounded-lg flex items-center justify-center gap-2 transition-all duration-300"
                   >
-                    <ShoppingCart size={20} /> Add To Cart
+                    <ShoppingCart size={18} /> Add To Cart
                   </button>
                   
                    <button 
                     onClick={handleBuyNow}
-                    className="flex-1 h-14 px-6 bg-[#7D2596] text-white hover:bg-[#631d76] text-base font-bold uppercase rounded-lg flex items-center justify-center gap-2 transition-all duration-300 shadow-lg shadow-purple-100"
+                    className="flex-1 h-12 px-6 bg-[#7D2596] text-white hover:bg-[#631d76] text-sm font-bold uppercase rounded-lg flex items-center justify-center gap-2 transition-all duration-300 shadow-lg shadow-purple-100"
                    >
                     Buy Now
                   </button>
@@ -312,8 +357,13 @@ export default function ClientProductDetails() {
 
             {/* Wishlist / Compare */}
             <div className="flex items-center gap-6 mb-8 text-sm font-semibold text-gray-500">
-              <button className="flex items-center gap-2 hover:text-[#7D2596] transition-colors">
-                <Heart size={18} /> Add to Wishlist
+              <button 
+                onClick={handleAddToWishlist}
+                disabled={wishlistLoading}
+                className={`flex items-center gap-2 transition-colors ${inWishlist ? 'text-red-500' : 'hover:text-[#7D2596]'}`}
+              >
+                <Heart size={18} fill={inWishlist ? "currentColor" : "none"} /> 
+                {inWishlist ? "Saved to Wishlist" : "Add to Wishlist"}
               </button>
               <button className="flex items-center gap-2 hover:text-[#7D2596] transition-colors">
                 <Repeat size={18} /> Compare
@@ -348,9 +398,8 @@ export default function ClientProductDetails() {
           </div>
         </div>
 
-        {/* ================= BOTTOM SECTION: TABS ================= */}
+        {/* BOTTOM SECTION: TABS */}
         <div className="mt-16">
-          {/* Tab Headers */}
           <div className="flex justify-center border-b border-gray-200 mb-8 overflow-x-auto">
             <div className="flex gap-10 min-w-max px-4">
               <button 
@@ -368,7 +417,6 @@ export default function ClientProductDetails() {
             </div>
           </div>
 
-          {/* Tab Content */}
           <div className="max-w-4xl mx-auto">
             {activeTab === 'description' ? (
               <div className="prose prose-gray max-w-none text-gray-600">
@@ -384,7 +432,6 @@ export default function ClientProductDetails() {
                 <div className="bg-gray-50 border border-gray-100 rounded-xl p-6 shadow-sm">
                    <h3 className="font-bold text-lg text-gray-900 mb-4">Add a review</h3>
                    <form onSubmit={handleSubmitReview}>
-                       {/* Star Rating Input */}
                        <div className="flex items-center gap-2 mb-4">
                           <span className="text-sm text-gray-600">Your Rating:</span>
                           <div className="flex">
@@ -399,7 +446,6 @@ export default function ClientProductDetails() {
                           </div>
                        </div>
 
-                       {/* Name Input */}
                        <div className="mb-4">
                            <input 
                              type="text" 
@@ -411,7 +457,6 @@ export default function ClientProductDetails() {
                            />
                        </div>
 
-                       {/* Comment Input */}
                        <div className="mb-4">
                           <textarea 
                              rows="3"
@@ -441,7 +486,6 @@ export default function ClientProductDetails() {
                       <div key={index} className="border-b border-gray-100 pb-6 last:border-0">
                         <div className="flex items-start gap-4">
                           <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                             {/* User Avatar Logic */}
                              {review.avatar ? (
                                <img src={review.avatar} alt={review.user} className="w-full h-full object-cover"/>
                              ) : (

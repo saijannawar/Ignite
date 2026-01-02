@@ -1,75 +1,91 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from "react";
 
 const CartContext = createContext();
 
-export function useCart() {
-  return useContext(CartContext);
-}
+export const useCart = () => useContext(CartContext);
 
-export function CartProvider({ children }) {
+export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  
+  // ✅ NEW: State for the popup notification
+  const [notification, setNotification] = useState(null); 
 
+  // Load cart from localStorage on mount
   useEffect(() => {
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) setCartItems(JSON.parse(savedCart));
+    const savedCart = localStorage.getItem("cart");
+    if (savedCart) {
+      setCartItems(JSON.parse(savedCart));
+    }
   }, []);
 
+  // Save cart to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cartItems));
+    localStorage.setItem("cart", JSON.stringify(cartItems));
   }, [cartItems]);
 
-  const openCart = () => setIsCartOpen(true);
-  const closeCart = () => setIsCartOpen(false);
-
   const addToCart = (product) => {
-    setCartItems(prev => {
-      const existing = prev.find(item => item.id === product.id);
-      if (existing) {
-        return prev.map(item => 
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+    setCartItems((prevItems) => {
+      const existingItem = prevItems.find((item) => item.id === product.id);
+      if (existingItem) {
+        return prevItems.map((item) =>
+          item.id === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
         );
       }
-      return [...prev, { ...product, quantity: 1 }];
+      return [...prevItems, { ...product, quantity: 1 }];
     });
-    openCart(); 
-  };
 
-  const decreaseQuantity = (productId) => {
-    setCartItems(prev => {
-      return prev.map(item => {
-        if (item.id === productId) return { ...item, quantity: item.quantity - 1 };
-        return item;
-      }).filter(item => item.quantity > 0);
-    });
+    // ❌ REMOVED: setIsCartOpen(true);  <-- This line used to open the drawer
+    
+    // ✅ ADDED: Show popup notification
+    setNotification(`${product.name} added to cart!`);
+    
+    // Hide popup after 3 seconds
+    setTimeout(() => {
+      setNotification(null);
+    }, 3000);
   };
 
   const removeFromCart = (productId) => {
-    setCartItems(prev => prev.filter(item => item.id !== productId));
+    setCartItems((prevItems) => prevItems.filter((item) => item.id !== productId));
   };
 
-  // ✅ NEW: Function to clear cart
+  const decreaseQuantity = (productId) => {
+    setCartItems((prevItems) =>
+      prevItems.map((item) =>
+        item.id === productId
+          ? { ...item, quantity: Math.max(1, item.quantity - 1) }
+          : item
+      )
+    );
+  };
+
   const clearCart = () => {
     setCartItems([]);
   };
 
-  const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
-  const cartTotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const openCart = () => setIsCartOpen(true);
+  const closeCart = () => setIsCartOpen(false);
 
-  return (
-    <CartContext.Provider value={{ 
-      cartItems, 
-      addToCart, 
-      decreaseQuantity, 
-      removeFromCart, 
-      clearCart, // <--- Export this
-      cartCount, 
-      cartTotal,
-      isCartOpen, 
-      openCart, 
-      closeCart 
-    }}>
-      {children}
-    </CartContext.Provider>
-  );
-}
+  // Derived state
+  const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+  const cartTotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+
+  const value = {
+    cartItems,
+    addToCart,
+    removeFromCart,
+    decreaseQuantity,
+    clearCart,
+    cartCount,
+    cartTotal,
+    isCartOpen,
+    openCart,
+    closeCart,
+    notification, // ✅ Export this so we can display it
+  };
+
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+};

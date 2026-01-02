@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { MapPin, CreditCard, Trash2, Loader } from 'lucide-react'; 
+import { useNavigate, useLocation } from 'react-router-dom'; // ✅ Added useLocation
+import { MapPin, CreditCard, Trash2, Loader, Building, Info } from 'lucide-react'; 
 import { 
   getUserAddresses, 
   addUserAddress, 
@@ -10,7 +10,6 @@ import {
   updateUserAddress 
 } from '../../services/productService'; 
 
-// ✅ IMPORT FIREBASE FUNCTIONS
 import { db } from '../../config/firebase'; 
 import { 
   collection, 
@@ -24,7 +23,15 @@ export default function Checkout() {
   const { cartItems, cartTotal, clearCart } = useCart();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // ✅ 1. GET SHIPPING INFO FROM CART PAGE
+  // Default to 'pune' if accessed directly without state
+  const { shippingMethod, shippingCost } = location.state || { shippingMethod: 'pune', shippingCost: 0 };
   
+  // Calculate Final Total
+  const finalTotal = cartTotal + shippingCost;
+
   // State
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
@@ -41,7 +48,7 @@ export default function Checkout() {
     line1: '', city: '', state: '', pincode: '', country: '', phone: '', type: 'Home'
   });
 
-  // Fetch Addresses
+  // Fetch Addresses (Only needed if shipping method is Pune)
   useEffect(() => {
     const fetchAddresses = async () => {
       if (currentUser) {
@@ -56,8 +63,12 @@ export default function Checkout() {
         }
       }
     };
-    fetchAddresses();
-  }, [currentUser]);
+    if (shippingMethod === 'pune') {
+        fetchAddresses();
+    } else {
+        setLoading(false); // Stop loading if VIT pickup
+    }
+  }, [currentUser, shippingMethod]);
 
   // Handlers for Add/Edit/Delete
   const handleOpenAdd = () => {
@@ -105,24 +116,42 @@ export default function Checkout() {
     }
   };
 
-  // ✅ UPDATED PLACE ORDER LOGIC (WITH STOCK CHECK & UPDATE)
+  // ✅ UPDATED PLACE ORDER LOGIC
   const handlePlaceOrder = async () => {
-    if (!selectedAddressId) {
+    // Validation: Only check address if shipping is 'pune'
+    if (shippingMethod === 'pune' && !selectedAddressId) {
       alert("Please select a delivery address.");
       return;
     }
+    
     if (!currentUser) return;
     if (cartItems.length === 0) return alert("Your cart is empty!");
 
     try {
       setProcessingOrder(true);
       
-      const shippingAddress = addresses.find(addr => addr.id === selectedAddressId);
+      // Determine final address object
+      let finalAddress = {};
       
-      // 1. Initialize Batch
+      if (shippingMethod === 'vit') {
+          // Hardcoded address for VIT Pickup
+          finalAddress = {
+              line1: 'VIT College Campus (Bibwewadi/Kondhwa)',
+              city: 'Pune',
+              state: 'MH',
+              pincode: '411037',
+              country: 'India',
+              phone: currentUser.phoneNumber || 'N/A', // Use login phone or N/A
+              type: 'Pickup'
+          };
+      } else {
+          // Selected User Address
+          finalAddress = addresses.find(addr => addr.id === selectedAddressId);
+      }
+      
       const batch = writeBatch(db);
 
-      // 2. CHECK STOCK FOR ALL ITEMS FIRST
+      // 1. CHECK STOCK
       for (const item of cartItems) {
         const productRef = doc(db, 'products', item.id);
         const productSnap = await getDoc(productRef);
@@ -136,11 +165,11 @@ export default function Checkout() {
         if (currentStock < item.quantity) {
           alert(`Insufficient stock for "${item.name}". Only ${currentStock} left.`);
           setProcessingOrder(false);
-          return; // STOP ORDER PROCESS
+          return; 
         }
       }
 
-      // 3. CREATE ORDER DOCUMENT
+      // 2. CREATE ORDER
       const orderRef = doc(collection(db, 'orders'));
       const orderData = {
         orderId: orderRef.id,
@@ -154,33 +183,30 @@ export default function Checkout() {
             quantity: item.quantity,
             image: item.imageUrl || item.images?.[0] || ''
         })),
-        total: cartTotal,
-        address: shippingAddress,
+        subtotal: cartTotal,
+        shippingCost: shippingCost,
+        total: finalTotal, // ✅ Saves the final total including shipping
+        shippingMethod: shippingMethod, // 'vit' or 'pune'
+        address: finalAddress,
         status: 'Processing',
-        paymentMethod: 'Cash On Delivery',
+        paymentMethod: 'Cash On Delivery', // or 'Pay on Pickup' if VIT
         date: new Date().toLocaleDateString('en-GB'),
         createdAt: serverTimestamp(),
       };
 
-      // Add "Create Order" to batch
       batch.set(orderRef, orderData);
 
-      // 4. DECREASE STOCK FOR EACH ITEM
+      // 3. DECREASE STOCK
       for (const item of cartItems) {
         const productRef = doc(db, 'products', item.id);
-        // Fetch fresh data again (optional safety) or trust the previous check
         const productSnap = await getDoc(productRef);
         const currentStock = Number(productSnap.data().stock) || 0;
         const newStock = Math.max(0, currentStock - item.quantity);
-
-        // Add "Update Stock" to batch
         batch.update(productRef, { stock: newStock });
       }
 
-      // 5. COMMIT EVERYTHING AT ONCE
       await batch.commit();
       
-      // Success!
       clearCart();
       navigate('/order-success');
 
@@ -197,38 +223,69 @@ export default function Checkout() {
       <div className="container mx-auto px-4 max-w-7xl">
         <div className="flex flex-col lg:flex-row gap-8">
           
-          {/* LEFT: Address Section */}
+          {/* LEFT: Delivery Details Section */}
           <div className="lg:w-2/3">
              <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 min-h-[400px]">
                 
-                <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
-                   <h2 className="text-lg font-bold text-gray-800">Select Delivery Address</h2>
-                   <button onClick={handleOpenAdd} className="text-[#7D2596] text-xs font-bold uppercase border border-[#7D2596] px-4 py-2 rounded hover:bg-[#F4EAFB] transition-colors">+ Add New Address</button>
-                </div>
-                
-                {loading ? (
-                    <div className="flex justify-center p-10 text-[#7D2596]"><Loader className="animate-spin" /></div>
-                ) : (
-                    <div className="grid gap-4">
-                    {addresses.map((addr) => (
-                        <div key={addr.id} onClick={() => setSelectedAddressId(addr.id)} className={`relative border rounded-lg p-5 cursor-pointer transition-all ${selectedAddressId === addr.id ? 'border-[#7D2596] bg-[#fdfaff]' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
-                           <div className="absolute top-4 right-4 flex gap-3">
-                            <button onClick={(e) => { e.stopPropagation(); handleOpenEdit(addr); }} className="text-xs font-bold text-[#7D2596] hover:underline uppercase">Edit</button>
-                            <button onClick={(e) => handleDelete(e, addr.id)} className="text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
-                          </div>
-                          <div className="flex items-start gap-4">
-                            <div className={`mt-1 w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${selectedAddressId === addr.id ? 'border-[#7D2596]' : 'border-gray-400'}`}>
-                              {selectedAddressId === addr.id && <div className="w-2 h-2 bg-[#7D2596] rounded-full" />}
-                            </div>
-                            <div className="flex-1">
-                               <p className="font-bold text-sm text-gray-800">{addr.phone}</p>
-                               <p className="text-xs text-gray-500">{addr.line1}, {addr.city} - {addr.pincode}</p>
-                            </div>
-                          </div>
+                {/* ✅ CONDITIONAL RENDER: Address vs Pickup Info */}
+                {shippingMethod === 'vit' ? (
+                    // --- OPTION A: VIT PICKUP UI ---
+                    <div>
+                        <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mb-6">
+                            <Building className="text-[#7D2596]" size={24} />
+                            <h2 className="text-lg font-bold text-gray-800">College Pickup</h2>
                         </div>
-                      ))}
-                      {addresses.length === 0 && <p className="text-gray-400 text-center">No addresses found. Please add one.</p>}
+                        
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+                            <h3 className="text-green-800 font-bold text-lg mb-2">Free Delivery Applied!</h3>
+                            <p className="text-green-700 mb-4">
+                                You have selected to pick up your order from <strong>VIT College Campus</strong>.
+                            </p>
+                            <div className="text-sm text-gray-600 space-y-1">
+                                <p>📍 <strong>Location:</strong> Bibwewadi / Kondhwa Campus</p>
+                                <p>⏰ <strong>Timing:</strong> We will contact you for pickup time.</p>
+                                <p>💰 <strong>Payment:</strong> Cash on Pickup available.</p>
+                            </div>
+                        </div>
+                        
+                        <div className="mt-6 flex items-center gap-2 text-sm text-gray-500 bg-gray-50 p-3 rounded">
+                            <Info size={16} />
+                            <span>No need to add an address. We will verify via student ID at pickup.</span>
+                        </div>
                     </div>
+                ) : (
+                    // --- OPTION B: PUNE DELIVERY ADDRESS UI ---
+                    <>
+                        <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
+                           <h2 className="text-lg font-bold text-gray-800">Select Delivery Address</h2>
+                           <button onClick={handleOpenAdd} className="text-[#7D2596] text-xs font-bold uppercase border border-[#7D2596] px-4 py-2 rounded hover:bg-[#F4EAFB] transition-colors">+ Add New Address</button>
+                        </div>
+                        
+                        {loading ? (
+                            <div className="flex justify-center p-10 text-[#7D2596]"><Loader className="animate-spin" /></div>
+                        ) : (
+                            <div className="grid gap-4">
+                            {addresses.map((addr) => (
+                                <div key={addr.id} onClick={() => setSelectedAddressId(addr.id)} className={`relative border rounded-lg p-5 cursor-pointer transition-all ${selectedAddressId === addr.id ? 'border-[#7D2596] bg-[#fdfaff]' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
+                                   <div className="absolute top-4 right-4 flex gap-3">
+                                    <button onClick={(e) => { e.stopPropagation(); handleOpenEdit(addr); }} className="text-xs font-bold text-[#7D2596] hover:underline uppercase">Edit</button>
+                                    <button onClick={(e) => handleDelete(e, addr.id)} className="text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
+                                  </div>
+                                  <div className="flex items-start gap-4">
+                                    <div className={`mt-1 w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${selectedAddressId === addr.id ? 'border-[#7D2596]' : 'border-gray-400'}`}>
+                                      {selectedAddressId === addr.id && <div className="w-2 h-2 bg-[#7D2596] rounded-full" />}
+                                    </div>
+                                    <div className="flex-1">
+                                       <p className="font-bold text-sm text-gray-800">{addr.phone}</p>
+                                       <p className="text-xs text-gray-500">{addr.line1}, {addr.city} - {addr.pincode}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                              {addresses.length === 0 && <p className="text-gray-400 text-center">No addresses found. Please add one.</p>}
+                            </div>
+                        )}
+                    </>
                 )}
              </div>
           </div>
@@ -236,8 +293,9 @@ export default function Checkout() {
           {/* RIGHT: Order Summary */}
           <div className="lg:w-1/3">
             <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 sticky top-24">
-              <h3 className="font-bold text-gray-800 mb-6 pb-4 border-b border-gray-100">Your Order</h3>
+              <h3 className="font-bold text-gray-800 mb-6 pb-4 border-b border-gray-100">Order Summary</h3>
               
+              {/* Product List */}
               <div className="space-y-4 mb-6 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin">
                 {cartItems.map((item) => (
                   <div key={item.id} className="flex gap-4">
@@ -253,22 +311,34 @@ export default function Checkout() {
                 ))}
               </div>
 
-              <div className="border-t border-gray-100 pt-4 mb-6">
-                <div className="flex justify-between items-center text-sm font-bold text-gray-800 text-lg mt-2">
-                  <span>Total</span>
-                  <span className="text-[#7D2596]">₹{cartTotal}</span>
+              {/* ✅ PRICE BREAKDOWN */}
+              <div className="border-t border-gray-100 pt-4 mb-6 space-y-2">
+                <div className="flex justify-between items-center text-sm text-gray-600">
+                  <span>Subtotal</span>
+                  <span>₹{cartTotal}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm text-gray-600">
+                  <span>Shipping ({shippingMethod === 'vit' ? 'Pickup' : 'Pune'})</span>
+                  <span className={shippingCost === 0 ? 'text-green-600 font-bold' : ''}>
+                    {shippingCost === 0 ? 'Free' : `₹${shippingCost}`}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-base font-bold text-gray-800 pt-2 border-t border-gray-100 mt-2">
+                  <span>Total Amount</span>
+                  <span className="text-xl text-[#7D2596]">₹{finalTotal}</span>
                 </div>
               </div>
 
               <div className="space-y-3">
                 <button 
                    onClick={handlePlaceOrder} 
-                   disabled={!selectedAddressId || processingOrder || cartItems.length === 0}
+                   // Disable if Pune Method + No Address Selected
+                   disabled={processingOrder || cartItems.length === 0 || (shippingMethod === 'pune' && !selectedAddressId)}
                    className={`w-full py-3 text-white font-bold text-sm uppercase rounded flex items-center justify-center gap-2 transition shadow-lg 
-                     ${!selectedAddressId || cartItems.length === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#7D2596] hover:bg-[#631d76]'}`}
+                     ${(shippingMethod === 'pune' && !selectedAddressId) ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#7D2596] hover:bg-[#631d76]'}`}
                 >
                   {processingOrder ? <Loader className="animate-spin" size={16} /> : <CreditCard size={16} />}
-                  {processingOrder ? 'Processing...' : 'Cash On Delivery'}
+                  {processingOrder ? 'Processing...' : (shippingMethod === 'vit' ? 'Confirm Pickup' : 'Place Order')}
                 </button>
               </div>
             </div>
@@ -277,12 +347,12 @@ export default function Checkout() {
         </div>
       </div>
       
-      {/* Address Modal */}
+      {/* Address Modal (Only renders if method is 'pune') */}
       {showAddressModal && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
              <div className="bg-white w-full max-w-lg rounded-lg shadow-2xl p-6">
                 <h3 className="text-lg font-bold mb-4 text-gray-800">{isEditing ? 'Edit' : 'Add'} Address</h3>
-                
+                {/* ... Address Form Inputs (Same as before) ... */}
                 <input className="w-full p-3 border border-gray-200 rounded mb-3 focus:outline-none focus:border-[#7D2596]" placeholder="Line 1 (House No, Building, Street)" value={newAddress.line1} onChange={e => setNewAddress({...newAddress, line1: e.target.value})} />
                 
                 <div className="grid grid-cols-2 gap-3 mb-3">
