@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom'; // ✅ Added useLocation
-import { MapPin, CreditCard, Trash2, Loader, Building, Info } from 'lucide-react'; 
+import { useNavigate, useLocation } from 'react-router-dom'; 
+import { MapPin, CreditCard, Trash2, Loader, Building, Info, Phone } from 'lucide-react'; 
 import { 
   getUserAddresses, 
   addUserAddress, 
@@ -25,8 +25,7 @@ export default function Checkout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ✅ 1. GET SHIPPING INFO FROM CART PAGE
-  // Default to 'pune' if accessed directly without state
+  // 1. GET SHIPPING INFO FROM CART PAGE
   const { shippingMethod, shippingCost } = location.state || { shippingMethod: 'pune', shippingCost: 0 };
   
   // Calculate Final Total
@@ -38,6 +37,9 @@ export default function Checkout() {
   const [loading, setLoading] = useState(true);
   const [processingOrder, setProcessingOrder] = useState(false); 
   
+  // ✅ NEW: State for manual phone entry if user has no phone in Auth
+  const [pickupPhone, setPickupPhone] = useState('');
+
   // Modal State
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -66,7 +68,7 @@ export default function Checkout() {
     if (shippingMethod === 'pune') {
         fetchAddresses();
     } else {
-        setLoading(false); // Stop loading if VIT pickup
+        setLoading(false); 
     }
   }, [currentUser, shippingMethod]);
 
@@ -118,19 +120,32 @@ export default function Checkout() {
 
   // ✅ UPDATED PLACE ORDER LOGIC
   const handlePlaceOrder = async () => {
-    // Validation: Only check address if shipping is 'pune'
+    if (!currentUser) return;
+    if (cartItems.length === 0) return alert("Your cart is empty!");
+
+    // Validation: Check address for Pune
     if (shippingMethod === 'pune' && !selectedAddressId) {
       alert("Please select a delivery address.");
       return;
     }
+
+    // ✅ VALIDATION: Check Phone for VIT Pickup
+    let finalPhone = currentUser.phoneNumber; // Default to auth phone
     
-    if (!currentUser) return;
-    if (cartItems.length === 0) return alert("Your cart is empty!");
+    if (shippingMethod === 'vit') {
+        if (!finalPhone) {
+            // If no auth phone, check the manual input
+            if (!pickupPhone || pickupPhone.length !== 10) {
+                alert("Please enter a valid 10-digit mobile number so we can contact you for pickup.");
+                return;
+            }
+            finalPhone = pickupPhone;
+        }
+    }
 
     try {
       setProcessingOrder(true);
       
-      // Determine final address object
       let finalAddress = {};
       
       if (shippingMethod === 'vit') {
@@ -141,7 +156,7 @@ export default function Checkout() {
               state: 'MH',
               pincode: '411037',
               country: 'India',
-              phone: currentUser.phoneNumber || 'N/A', // Use login phone or N/A
+              phone: finalPhone, // ✅ Use the validated phone number
               type: 'Pickup'
           };
       } else {
@@ -185,11 +200,11 @@ export default function Checkout() {
         })),
         subtotal: cartTotal,
         shippingCost: shippingCost,
-        total: finalTotal, // ✅ Saves the final total including shipping
-        shippingMethod: shippingMethod, // 'vit' or 'pune'
+        total: finalTotal, 
+        shippingMethod: shippingMethod, 
         address: finalAddress,
         status: 'Processing',
-        paymentMethod: 'Cash On Delivery', // or 'Pay on Pickup' if VIT
+        paymentMethod: 'Cash On Delivery', 
         date: new Date().toLocaleDateString('en-GB'),
         createdAt: serverTimestamp(),
       };
@@ -227,7 +242,7 @@ export default function Checkout() {
           <div className="lg:w-2/3">
              <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 min-h-[400px]">
                 
-                {/* ✅ CONDITIONAL RENDER: Address vs Pickup Info */}
+                {/* CONDITIONAL RENDER: Address vs Pickup Info */}
                 {shippingMethod === 'vit' ? (
                     // --- OPTION A: VIT PICKUP UI ---
                     <div>
@@ -247,11 +262,34 @@ export default function Checkout() {
                                 <p>💰 <strong>Payment:</strong> Cash on Pickup available.</p>
                             </div>
                         </div>
-                        
-                        <div className="mt-6 flex items-center gap-2 text-sm text-gray-500 bg-gray-50 p-3 rounded">
-                            <Info size={16} />
-                            <span>No need to add an address. We will verify via student ID at pickup.</span>
-                        </div>
+
+                        {/* ✅ NEW: Check if phone number is missing */}
+                        {!currentUser.phoneNumber ? (
+                             <div className="mt-6 bg-white border border-gray-200 p-4 rounded-lg shadow-sm text-left">
+                                <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                    <Phone size={16} className="text-[#7D2596]"/>
+                                    Mobile Number <span className="text-red-500">*</span>
+                                </label>
+                                <p className="text-xs text-gray-500 mb-3">Since you are not logged in with a mobile number, please provide one for pickup coordination.</p>
+                                <input 
+                                    type="text" 
+                                    maxLength="10"
+                                    placeholder="Enter 10-digit mobile number" 
+                                    className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-[#7D2596]"
+                                    value={pickupPhone}
+                                    onChange={(e) => {
+                                        // Only allow numbers
+                                        const val = e.target.value.replace(/\D/g, '');
+                                        setPickupPhone(val);
+                                    }}
+                                />
+                             </div>
+                        ) : (
+                             <div className="mt-6 flex items-center gap-2 text-sm text-gray-500 bg-gray-50 p-3 rounded justify-center">
+                                <Info size={16} />
+                                <span>We will contact you on your registered number: <strong>{currentUser.phoneNumber}</strong></span>
+                            </div>
+                        )}
                     </div>
                 ) : (
                     // --- OPTION B: PUNE DELIVERY ADDRESS UI ---
@@ -276,13 +314,13 @@ export default function Checkout() {
                                       {selectedAddressId === addr.id && <div className="w-2 h-2 bg-[#7D2596] rounded-full" />}
                                     </div>
                                     <div className="flex-1">
-                                       <p className="font-bold text-sm text-gray-800">{addr.phone}</p>
-                                       <p className="text-xs text-gray-500">{addr.line1}, {addr.city} - {addr.pincode}</p>
+                                        <p className="font-bold text-sm text-gray-800">{addr.phone}</p>
+                                        <p className="text-xs text-gray-500">{addr.line1}, {addr.city} - {addr.pincode}</p>
                                     </div>
                                   </div>
                                 </div>
-                              ))}
-                              {addresses.length === 0 && <p className="text-gray-400 text-center">No addresses found. Please add one.</p>}
+                             ))}
+                             {addresses.length === 0 && <p className="text-gray-400 text-center">No addresses found. Please add one.</p>}
                             </div>
                         )}
                     </>
@@ -311,7 +349,7 @@ export default function Checkout() {
                 ))}
               </div>
 
-              {/* ✅ PRICE BREAKDOWN */}
+              {/* PRICE BREAKDOWN */}
               <div className="border-t border-gray-100 pt-4 mb-6 space-y-2">
                 <div className="flex justify-between items-center text-sm text-gray-600">
                   <span>Subtotal</span>
@@ -352,7 +390,7 @@ export default function Checkout() {
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
              <div className="bg-white w-full max-w-lg rounded-lg shadow-2xl p-6">
                 <h3 className="text-lg font-bold mb-4 text-gray-800">{isEditing ? 'Edit' : 'Add'} Address</h3>
-                {/* ... Address Form Inputs (Same as before) ... */}
+                
                 <input className="w-full p-3 border border-gray-200 rounded mb-3 focus:outline-none focus:border-[#7D2596]" placeholder="Line 1 (House No, Building, Street)" value={newAddress.line1} onChange={e => setNewAddress({...newAddress, line1: e.target.value})} />
                 
                 <div className="grid grid-cols-2 gap-3 mb-3">

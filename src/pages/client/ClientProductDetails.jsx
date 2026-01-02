@@ -21,13 +21,13 @@ import { db } from "../../config/firebase";
 
 import { getProductById } from '../../services/productService';
 import { useCart } from '../../context/CartContext'; 
-import { useAuth } from '../../context/AuthContext'; // ✅ Import Auth
+import { useAuth } from '../../context/AuthContext'; 
 
 export default function ClientProductDetails() {
   const { id } = useParams();
   const navigate = useNavigate(); 
   const { addToCart } = useCart(); 
-  const { currentUser } = useAuth(); // ✅ Get logged in user
+  const { currentUser } = useAuth(); 
   
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -133,7 +133,6 @@ export default function ClientProductDetails() {
     ));
   };
 
-  // ✅ ADD TO WISHLIST FUNCTION
   const handleAddToWishlist = async () => {
     if (!currentUser) {
         alert("Please login to use Wishlist");
@@ -145,7 +144,6 @@ export default function ClientProductDetails() {
     try {
         const wishlistRef = doc(db, "users", currentUser.uid, "wishlist", product.id);
         
-        // Add minimal product details to wishlist
         await setDoc(wishlistRef, {
             productId: product.id,
             name: product.name,
@@ -170,15 +168,16 @@ export default function ClientProductDetails() {
       }
   };
 
+  // ✅ UPDATED: Redirects to /cart instead of /checkout
   const handleBuyNow = () => {
     if (!currentUser) {
-        alert("Please login to checkout");
+        alert("Please login to proceed");
         navigate('/login');
         return;
     }
     if (product) {
       addToCart({ ...product, quantity });
-      navigate('/checkout'); 
+      navigate('/cart'); // <--- Changed from '/checkout' to '/cart'
     }
   };
 
@@ -337,7 +336,7 @@ export default function ClientProductDetails() {
                  </button>
               </div>
 
-              {/* ✅ ALIGNED BUTTONS (Full width on mobile, side-by-side) */}
+              {/* ALIGNED BUTTONS */}
               <div className="flex gap-3 w-full">
                   <button 
                     onClick={handleAddToCart}

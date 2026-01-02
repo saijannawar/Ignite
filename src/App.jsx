@@ -3,8 +3,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext'; 
 
-// ✅ Import the new Preloader
+// ✅ Import Preloader & ScrollToTop
 import Preloader from './components/common/Preloader';
+import ScrollToTop from './components/common/ScrollToTop'; // <--- NEW IMPORT
 
 // --- LAZY LOAD PAGES (For Better Performance) ---
 // Auth
@@ -50,7 +51,7 @@ import AdminLayout from './layouts/AdminLayout';
 const ProtectedRoute = ({ children, requiredRole }) => {
   const { currentUser, userRole, loading } = useAuth();
   
-  if (loading) return <Preloader />; // Use Preloader instead of text
+  if (loading) return <Preloader />; 
   
   if (!currentUser) return <Navigate to="/login" />;
   if (requiredRole && userRole !== requiredRole) return <Navigate to="/" />;
@@ -108,7 +109,14 @@ const AppContent = () => {
           <Route path="/account" element={<ProtectedRoute><MyAccount /></ProtectedRoute>} />
           <Route path="/address" element={<ProtectedRoute><MyAccount /></ProtectedRoute>} />
           <Route path="/wishlist" element={<ProtectedRoute><MyAccount /></ProtectedRoute>} />
-        
+          
+          {/* Orders route for tracking */}
+          <Route path="/orders" element={<ProtectedRoute><MyAccount /></ProtectedRoute>} />
+          
+          {/* Policy Routes (Optional - map to Home or create new pages) */}
+          <Route path="/privacy" element={<Home />} />
+          <Route path="/terms" element={<Home />} />
+          <Route path="/contact" element={<About />} />
           
         </Route>
 
@@ -167,6 +175,8 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <CartProvider>
+           {/* ✅ ScrollToTop must be inside Router but outside Routes */}
+           <ScrollToTop /> 
            <AppContent />
         </CartProvider>
       </AuthProvider>

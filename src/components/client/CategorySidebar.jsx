@@ -72,7 +72,8 @@ const CategorySidebar = ({ isOpen, onClose }) => {
                alt="Logo" 
                className="h-8 w-8 object-contain" 
             />
-            <span className="font-bold text-lg tracking-tight text-gray-800">IGNITE<span className="text-[#7D2596]">NOW</span></span>
+            <span className="font-bold text-lg tracking-tight text-gray-800">IGNITE</span>
+            
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white rounded-full text-gray-500 transition-colors">
             <X size={24} />
