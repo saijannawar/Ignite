@@ -5,21 +5,19 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyC1GPtXXUJ2D0etvB314vYyC3lOqRWQT0g",
-  authDomain: "ignite-2a546.firebaseapp.com",
-  projectId: "ignite-2a546",
-  storageBucket: "ignite-2a546.firebasestorage.app",
-  messagingSenderId: "704262396246",
-  appId: "1:704262396246:web:56ef3064b30f731f30def7",
-  measurementId: "G-87H35V2QDT"
+  apiKey: "AIzaSyBZ2Fckkk_vYE_ItmmYq6U82ZHj41M3ZMM",
+  authDomain: "ignite-8ad50.firebaseapp.com",
+  projectId: "ignite-8ad50",
+  storageBucket: "ignite-8ad50.firebasestorage.app",
+  messagingSenderId: "806280061234",
+  appId: "1:806280061234:web:9abd17a5aacad32b00372b",
+  measurementId: "G-DTTK1QGMXE"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// 2. Export the services so your app can use them
 export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider(); // Needed for Google Login
+export const googleProvider = new GoogleAuthProvider(); 
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 

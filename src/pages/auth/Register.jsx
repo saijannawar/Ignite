@@ -1,66 +1,140 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { 
+  RecaptchaVerifier, 
+  signInWithPhoneNumber, 
+  EmailAuthProvider, 
+  linkWithCredential, 
+  updateProfile 
+} from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../../config/firebase';
+import { useAuth } from '../../context/AuthContext'; // ✅ Import Context
 
 export default function Register() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ fullName: '', email: '', password: '' });
+  const { googleSignIn } = useAuth(); 
+
+  // Form State
+  const [formData, setFormData] = useState({ fullName: '', email: '', password: '', phone: '' });
+  const [otp, setOtp] = useState('');
+  
+  // UI State
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // OTP Logic State
+  const [expandForm, setExpandForm] = useState(false); // To show Email/Pass after OTP
+  const [otpSent, setOtpSent] = useState(false);
+  const [confirmationResult, setConfirmationResult] = useState(null);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Handle Email/Password Registration
-  const handleSubmit = async (e) => {
+  // --- 1. GENERATE RECAPTCHA ---
+  const generateRecaptcha = () => {
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible',
+        'callback': (response) => {
+          // reCAPTCHA solved, allow signInWithPhoneNumber.
+        }
+      });
+    }
+  };
+
+  // --- 2. SEND OTP ---
+  const requestOtp = async (e) => {
     e.preventDefault();
+    if (formData.phone.length < 10) {
+      setError("Please enter a valid phone number");
+      return;
+    }
+    
     setLoading(true);
     setError('');
+    generateRecaptcha();
+    
+    const appVerifier = window.recaptchaVerifier;
+    const phoneNumber = "+91" + formData.phone; // Assuming India (+91). Change if needed.
 
     try {
-      // 1. Create User in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      const user = userCredential.user;
-
-      // 2. Update Display Name
-      await updateProfile(user, { displayName: formData.fullName });
-
-      // 3. Save User Role to Firestore (Important for Admin vs Client check)
-      await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        name: formData.fullName,
-        email: formData.email,
-        role: 'client', // Default role
-        createdAt: new Date()
-      });
-
-      navigate('/'); // Go to Home
+      const confirmation = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+      setConfirmationResult(confirmation);
+      setOtpSent(true);
+      alert("OTP Sent to " + phoneNumber);
     } catch (err) {
-      setError(err.message.replace('Firebase: ', ''));
+      console.error(err);
+      setError("Failed to send OTP. Try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle Google Registration
-  const handleGoogleSignIn = async () => {
+  // --- 3. VERIFY OTP ---
+  const verifyOtp = async (e) => {
+    e.preventDefault();
+    if (otp.length !== 6) return;
+    
+    setLoading(true);
     try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
+      await confirmationResult.confirm(otp);
+      setExpandForm(true); // OTP verified, show rest of form
+      setOtpSent(false); // Hide OTP input
+    } catch (err) {
+      console.error(err);
+      setError("Invalid OTP");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      // Check if user exists, if not save them
+  // --- 4. FINAL REGISTER (Link Email + Save to DB) ---
+  const handleFinalRegister = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const user = auth.currentUser; // User is already logged in via Phone
+
+      // A. Link Email/Password credential to the Phone Account
+      const credential = EmailAuthProvider.credential(formData.email, formData.password);
+      await linkWithCredential(user, credential);
+
+      // B. Update Profile Name
+      await updateProfile(user, { displayName: formData.fullName });
+
+      // C. Save User to Firestore
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
-        name: user.displayName,
-        email: user.email,
-        role: 'client'
-      }, { merge: true }); // merge prevents overwriting existing data
+        displayName: formData.fullName,
+        email: formData.email,
+        phoneNumber: user.phoneNumber,
+        photoURL: "",
+        role: 'client',
+        createdAt: serverTimestamp()
+      });
 
+      navigate('/');
+    } catch (err) {
+      console.error("Registration Error:", err);
+      if (err.code === 'auth/credential-already-in-use') {
+        setError("This email is already linked to another account.");
+      } else {
+        setError(err.message.replace('Firebase: ', ''));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- GOOGLE SIGN IN ---
+  const handleGoogleSignIn = async () => {
+    try {
+      await googleSignIn();
       navigate('/');
     } catch (err) {
       setError("Google Sign In Failed");
@@ -69,92 +143,149 @@ export default function Register() {
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-50 p-4">
-      <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-8">
-        {/* Header */}
-        <h2 className="text-xl font-bold text-center mb-6 text-gray-800">Register with a new account</h2>
+      <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-8 border border-gray-100">
         
-        {error && <div className="mb-4 p-3 bg-red-100 text-red-600 text-sm rounded">{error}</div>}
+        <h2 className="text-2xl font-bold text-center mb-6 text-gray-800">Create Account</h2>
+        
+        {error && <div className="mb-4 p-3 bg-red-100 text-red-700 text-sm rounded text-center">{error}</div>}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name */}
-          <div>
-            <input
-              type="text"
-              name="fullName"
-              placeholder="Full Name"
-              required
-              className="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:border-red-500"
-              onChange={handleChange}
-            />
-          </div>
+        {/* --- Hidden Recaptcha Div --- */}
+        <div id="recaptcha-container"></div>
 
-          {/* Email */}
-          <div>
-            <input
-              type="email"
-              name="email"
-              placeholder="Email Id"
-              required
-              className="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:border-red-500"
-              onChange={handleChange}
-            />
-          </div>
+        <form onSubmit={expandForm ? handleFinalRegister : (otpSent ? verifyOtp : requestOtp)} className="space-y-4">
+          
+          {/* STEP 1: PHONE NUMBER */}
+          {!expandForm && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  placeholder="9876543210"
+                  maxLength={10}
+                  disabled={otpSent}
+                  className="w-full px-4 py-3 border border-gray-300 rounded focus:ring-2 focus:ring-red-500 outline-none"
+                />
+                {!otpSent && (
+                  <button type="submit" disabled={loading} className="bg-gray-800 text-white px-4 rounded text-sm font-bold whitespace-nowrap">
+                    {loading ? '...' : 'Send OTP'}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
-          {/* Password */}
-          <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              name="password"
-              placeholder="Password"
-              required
-              className="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:border-red-500"
-              onChange={handleChange}
-            />
-            <button
-              type="button"
-              className="absolute right-3 top-3.5 text-gray-500"
-              onClick={() => setShowPassword(!showPassword)}
-            >
-              {showPassword ? (
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
-              )}
-            </button>
-          </div>
+          {/* STEP 2: OTP INPUT */}
+          {otpSent && !expandForm && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Enter OTP</label>
+              <input
+                type="text"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                placeholder="123456"
+                maxLength={6}
+                className="w-full px-4 py-3 border border-gray-300 rounded focus:ring-2 focus:ring-red-500 outline-none tracking-widest text-center text-lg"
+              />
+              <button 
+                type="submit" 
+                disabled={loading} 
+                className="w-full mt-3 bg-green-600 text-white py-3 rounded font-bold hover:bg-green-700 transition"
+              >
+                {loading ? 'Verifying...' : 'Verify OTP'}
+              </button>
+            </div>
+          )}
 
-          {/* Register Button */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-[#ff4d4d] text-white py-3 rounded font-semibold hover:bg-red-600 transition duration-200"
-          >
-            {loading ? 'Processing...' : 'REGISTER'}
-          </button>
+          {/* STEP 3: DETAILS FORM (Shown after OTP verified) */}
+          {expandForm && (
+            <>
+              <div className="bg-green-50 text-green-700 p-2 rounded text-xs text-center mb-4 border border-green-200">
+                ✅ Phone Verified: {formData.phone}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <input
+                  type="text"
+                  name="fullName"
+                  placeholder="Enter your full name"
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-red-500 outline-none"
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email ID</label>
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="Enter your email"
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-red-500 outline-none"
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    placeholder="Create a password"
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-red-500 outline-none"
+                    onChange={handleChange}
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-[#ff4d4d] text-white py-3 rounded font-bold hover:bg-red-600 transition-colors shadow-sm"
+              >
+                {loading ? 'Registering...' : 'COMPLETE REGISTRATION'}
+              </button>
+            </>
+          )}
+
         </form>
 
-        <div className="mt-4 text-center text-sm text-gray-600">
-          Already have an account? <Link to="/login" className="text-[#ff4d4d] font-semibold hover:underline">Login</Link>
-        </div>
+        {!expandForm && !otpSent && (
+          <>
+            <div className="mt-4 text-center text-sm text-gray-600">
+              Already have an account? <Link to="/login" className="text-[#ff4d4d] font-semibold hover:underline">Login</Link>
+            </div>
 
-        {/* Divider */}
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">Or continue with social account</span>
-          </div>
-        </div>
+            {/* Divider */}
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200"></div></div>
+              <div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-gray-500">Or continue with social account</span></div>
+            </div>
 
-        {/* Google Button */}
-        <button
-          onClick={handleGoogleSignIn}
-          className="w-full flex items-center justify-center gap-3 bg-gray-100 py-3 rounded hover:bg-gray-200 transition duration-200 font-medium text-gray-700"
-        >
-          <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
-          SIGN UP WITH GOOGLE
-        </button>
+            {/* Google Button */}
+            <button
+              onClick={handleGoogleSignIn}
+              className="w-full flex items-center justify-center gap-3 bg-gray-100 py-3 rounded hover:bg-gray-200 transition duration-200 font-medium text-gray-700"
+            >
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
+              SIGN UP WITH GOOGLE
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
