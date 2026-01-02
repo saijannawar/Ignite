@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { getBanners, getHomeSlides } from '../../services/productService'; 
+import { getBanners } from '../../services/productService'; 
 import { getCategories } from '../../services/categoryService';
 import { getProducts } from '../../services/productService';
-import { ChevronLeft, ChevronRight, Loader, Truck, ArrowRight } from 'lucide-react'; 
+import { db } from '../../config/firebase'; 
+import { collection, getDocs } from 'firebase/firestore'; 
+import { ChevronLeft, ChevronRight, Loader, Truck, ArrowRight, MapPin } from 'lucide-react'; 
 import { Link, useNavigate } from 'react-router-dom'; 
 import ProductCard from '../../components/client/ProductCard'; 
 
@@ -13,11 +15,14 @@ export default function Home() {
 
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]); 
-  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]); 
   const [latestProducts, setLatestProducts] = useState([]); 
   
+  const [categoryProductRows, setCategoryProductRows] = useState([]);
+
   const [currentSlide, setCurrentSlide] = useState(0);
   const [loading, setLoading] = useState(true);
+  
   const [activeTab, setActiveTab] = useState('ALL'); 
 
   const productContainerRef = useRef(null);
@@ -30,8 +35,12 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [slidesData, list1Data, list2Data, categoryData, productData] = await Promise.all([
-          getHomeSlides(),      
+        const slideSnap = await getDocs(collection(db, "home_banners"));
+        const slidesData = slideSnap.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+        const [list1Data, list2Data, categoryData, productData] = await Promise.all([
           getBanners('home_1'), 
           getBanners('home_2'), 
           getCategories(),
@@ -50,7 +59,7 @@ export default function Home() {
           return {
             ...p,
             originalPrice: p.originalPrice || Math.round(p.price * 1.2), 
-            brand: p.brand || "Brand", 
+            brand: p.brand || "Ignite", 
             rating: parseFloat(avg.toFixed(1)), 
             reviews: reviewCount,
             img: p.imageUrl || (p.images && p.images[0]) || p.img || 'https://via.placeholder.com/300'
@@ -58,10 +67,35 @@ export default function Home() {
         });
 
         const popularSorted = [...formattedProducts].sort((a, b) => b.reviews - a.reviews);
-
+        
         setProducts(popularSorted);
-        setFilteredProducts(popularSorted);
+        setFilteredProducts(popularSorted); 
         setLatestProducts(formattedProducts.slice(0, 10)); 
+
+        const catCounts = {};
+        formattedProducts.forEach(p => {
+            if(p.category) {
+                catCounts[p.category] = (catCounts[p.category] || 0) + 1;
+            }
+        });
+
+        const sortedCategories = [...categoryData].sort((a, b) => {
+            const countA = catCounts[a.id] || 0;
+            const countB = catCounts[b.id] || 0;
+            return countB - countA;
+        });
+
+        const top5Cats = sortedCategories.slice(0, 5);
+        
+        const catRows = top5Cats.map(cat => {
+            const matchingProducts = formattedProducts.filter(p => p.category === cat.id);
+            return {
+                category: cat,
+                products: matchingProducts.slice(0, 10) 
+            };
+        }).filter(row => row.products.length > 0);
+
+        setCategoryProductRows(catRows);
 
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -73,8 +107,11 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'ALL') setFilteredProducts(products);
-    else setFilteredProducts(products.filter(p => p.category === activeTab || p.categoryId === activeTab));
+    if (activeTab === 'ALL') {
+      setFilteredProducts(products);
+    } else {
+      setFilteredProducts(products.filter(p => p.category === activeTab));
+    }
   }, [activeTab, products]);
 
   useEffect(() => {
@@ -92,6 +129,14 @@ export default function Home() {
       const gap = 24; 
       const scrollAmount = cardWidth + gap;
       ref.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+    }
+  };
+
+  const scrollCategoryRow = (id, direction) => {
+    const container = document.getElementById(`cat-row-${id}`);
+    if (container) {
+        const scrollAmount = 300;
+        container.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
     }
   };
 
@@ -151,12 +196,13 @@ export default function Home() {
 
       <div className="bg-white pt-4 pb-10"> 
         
-        {/* POPULAR PRODUCTS */}
-        <div className="container mx-auto px-4 mb-2 relative group/slider"> 
+        {/* ✅ POPULAR PRODUCTS - WITH GAP FIX */}
+        <div className="container mx-auto px-4 mb-10 relative group/slider"> 
           
-          <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-gray-200 pb-2 mb-4 gap-4"> 
+          <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-gray-200 pb-2 mb-4"> 
             
-            <div className="flex-shrink-0">
+            {/* Added md:mr-8 here to create space between title and tabs */}
+            <div className="flex-shrink-0 md:mr-8 mb-3 md:mb-0">
               <h2 className="text-2xl font-bold text-gray-800">Popular Products</h2>
             </div>
 
@@ -168,7 +214,6 @@ export default function Home() {
                     ))}
                 </div>
             </div>
-
           </div>
 
           <div className="relative">
@@ -185,19 +230,27 @@ export default function Home() {
           </div>
         </div>
 
-        {/* FREE SHIPPING & BANNER LIST 1 */}
-        <div className="container mx-auto px-4 max-w-7xl mt-0 space-y-2 mb-2">
+        {/* ✅ SHIPPING INFO & BANNER LIST 1 */}
+        <div className="container mx-auto px-4 max-w-7xl mt-0 space-y-4 mb-10">
           
-          <div className="w-full bg-white border border-[#7D2596] rounded-lg p-3 flex flex-col md:flex-row items-center justify-between shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
-            <div className="absolute top-0 left-0 w-2 h-full bg-[#7D2596]"></div>
-            <div className="flex items-center gap-4 z-10"> 
-              <Truck size={32} className="text-[#333]" strokeWidth={1.5} /> 
-              <div>
-                <h3 className="text-base font-bold text-gray-800 uppercase tracking-wide">Free Shipping</h3>
-                <p className="text-xs text-gray-500 mt-0">Free Delivery Now On Your First Order and over ₹200</p>
-              </div>
+          <div className="w-full bg-white border-l-4 border-[#7D2596] rounded-r-lg p-4 flex flex-col md:flex-row items-center justify-between shadow-sm bg-purple-50/20">
+            <div className="flex items-center gap-4">
+                <div className="bg-white p-2.5 rounded-full shadow-sm text-[#7D2596] border border-purple-100">
+                    <MapPin size={24} />
+                </div>
+                <div>
+                    <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">
+                        Pune Delivery & Campus Pickup
+                    </h3>
+                    <p className="text-xs text-gray-600 mt-0.5">
+                        <span className="font-bold text-[#7D2596]">FREE</span> Pickup at VIT Campus • Fast Shipping across Pune
+                    </p>
+                </div>
             </div>
-            <div className="mt-1 md:mt-0 z-10"><span className="text-lg font-bold text-gray-800">- Only ₹200*</span></div>
+            <div className="mt-3 md:mt-0 flex gap-4 text-xs font-bold text-gray-500">
+                <div className="flex items-center gap-1"><Truck size={14} className="text-[#7D2596]"/> 24h Dispatch</div>
+                <div className="flex items-center gap-1"><MapPin size={14} className="text-[#7D2596]"/> VIT Pune</div>
+            </div>
           </div>
 
           {homeList1Banners.length > 0 && (
@@ -213,7 +266,6 @@ export default function Home() {
                       {banner.category && <span className="bg-white/90 backdrop-blur-sm text-gray-800 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider mb-2 shadow-sm">{banner.category}</span>}
                       <h3 className="text-lg font-extrabold text-gray-900 leading-tight mb-2 max-w-[70%] drop-shadow-sm line-clamp-2">{banner.title}</h3>
                       {banner.price && <div className="text-base font-bold text-[#7D2596] mb-3">₹{banner.price}</div>}
-                      
                       <button 
                         onClick={() => handleBannerClick(banner)}
                         className="flex items-center gap-2 text-[10px] font-bold uppercase border-b-2 border-gray-800 pb-1 hover:text-[#7D2596] hover:border-[#7D2596] transition-colors"
@@ -229,7 +281,7 @@ export default function Home() {
         </div>
 
         {/* LATEST PRODUCTS */}
-        <div className="container mx-auto px-4 mb-2 relative group/latest">
+        <div className="container mx-auto px-4 mb-10 relative group/latest">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold text-gray-800">Latest Products</h2>
             <Link to="/shop" className="flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-white hover:bg-[#7D2596] transition-all bg-gray-100 px-5 py-2 rounded-full shadow-sm">View All <ArrowRight size={16} /></Link>
@@ -241,6 +293,37 @@ export default function Home() {
               {latestProducts.length === 0 ? <div className="w-full py-10 text-center text-gray-400">No recent products available.</div> : latestProducts.map((product) => (<div key={product.id} className="min-w-[280px] max-w-[280px] flex-shrink-0 snap-center h-full"><ProductCard product={product} /></div>))}
             </div>
           </div>
+        </div>
+
+        {/* TOP 5 CATEGORY ROWS */}
+        <div className="container mx-auto px-4 space-y-10 mb-10">
+            {categoryProductRows.map((row) => (
+                <div key={row.category.id} className="relative group/catRow">
+                    <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-2">
+                        <h2 className="text-xl font-bold text-gray-800">{row.category.name}</h2>
+                        <Link to={`/shop?category=${row.category.id}`} className="text-sm font-bold text-[#7D2596] hover:underline flex items-center gap-1">
+                            See All <ArrowRight size={14} />
+                        </Link>
+                    </div>
+                    
+                    <div className="relative">
+                        <button onClick={() => scrollCategoryRow(row.category.id, 'left')} className="hidden md:flex absolute -left-5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white border border-gray-200 rounded-full shadow-md items-center justify-center text-gray-600 hover:bg-[#7D2596] hover:text-white transition-all opacity-0 group-hover/catRow:opacity-100">
+                            <ChevronLeft size={20} />
+                        </button>
+                        <button onClick={() => scrollCategoryRow(row.category.id, 'right')} className="hidden md:flex absolute -right-5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white border border-gray-200 rounded-full shadow-md items-center justify-center text-gray-600 hover:bg-[#7D2596] hover:text-white transition-all opacity-0 group-hover/catRow:opacity-100">
+                            <ChevronRight size={20} />
+                        </button>
+
+                        <div id={`cat-row-${row.category.id}`} className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide scroll-smooth snap-x snap-mandatory px-1">
+                            {row.products.map((product) => (
+                                <div key={product.id} className="min-w-[260px] max-w-[260px] flex-shrink-0 snap-center h-full">
+                                    <ProductCard product={product} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            ))}
         </div>
 
         {/* HOME BANNER LIST 2 */}

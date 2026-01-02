@@ -2,19 +2,21 @@ import React, { useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Image as ImageIcon, Grid, Package, Users, ShoppingBag, 
-  Flag, Settings, LogOut, ChevronRight, Menu, Bell
+  Flag, LogOut, ChevronRight, Menu, Bell
 } from 'lucide-react';
 import { auth } from '../config/firebase';
+import { useAuth } from '../context/AuthContext'; // Assuming you have this context available
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [expandedMenu, setExpandedMenu] = useState(null); 
   const navigate = useNavigate();
   const location = useLocation();
+  const { currentUser } = useAuth(); // Get current user for avatar
 
   const handleLogout = async () => {
     await auth.signOut();
-    navigate('/login');
+    navigate('/');
   };
 
   const toggleSubMenu = (menuName) => {
@@ -65,8 +67,7 @@ export default function AdminLayout() {
       ] 
     },
     
-    // ✅ UPDATED: Correct path for Manage Logo
-    { name: 'Manage Logo', icon: <Settings size={20} />, path: '/admin/logo' }, 
+    // ❌ REMOVED: Manage Logo
   ];
 
   return (
@@ -74,17 +75,22 @@ export default function AdminLayout() {
       
       {/* --- SIDEBAR --- */}
       <aside className={`bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-20'} overflow-y-auto z-20`}>
-        {/* Logo */}
-        <div className="p-5 border-b border-gray-100 flex items-center gap-3">
-          <div className="bg-[#ff4d4d] text-white p-1.5 rounded-lg flex-shrink-0">
-             <ShoppingBag size={20} />
-          </div>
-          {sidebarOpen && (
-            <div className="flex flex-col">
-               <span className="text-xl font-bold text-gray-800 leading-none">CLASSY<span className="text-[#ff4d4d]">SHOP</span></span>
-               <span className="text-[9px] text-gray-400 font-bold tracking-[0.2em] mt-1">BIG MEGA STORE</span>
+        {/* Logo Area */}
+        <div className="h-20 flex items-center gap-3 px-6 border-b border-gray-100">
+           {/* Logo Image */}
+           <img src="/vite.svg" alt="Ignite Logo" className="w-8 h-8 object-contain flex-shrink-0" />
+           
+           {/* Logo Text (Only show if sidebar open) */}
+           {sidebarOpen && (
+            <div className="flex flex-col overflow-hidden">
+                <span className="text-xl font-extrabold text-gray-800 tracking-wide leading-none truncate">
+                IGNITE
+                </span>
+                <span className="text-[10px] font-bold text-[#7D2596] tracking-[0.2em] uppercase truncate">
+                ADMIN PANEL
+                </span>
             </div>
-          )}
+           )}
         </div>
 
         {/* Navigation */}
@@ -99,7 +105,7 @@ export default function AdminLayout() {
                 <div 
                   onClick={() => item.subItems ? toggleSubMenu(item.name) : navigate(item.path)}
                   className={`flex items-center justify-between px-3 py-3 rounded-md cursor-pointer transition-colors relative z-10 ${
-                    isActive ? 'text-[#ff4d4d] bg-red-50' : 'text-gray-600 hover:bg-gray-50'
+                    isActive ? 'text-[#7D2596] bg-purple-50' : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -125,8 +131,8 @@ export default function AdminLayout() {
                           to={sub.path}
                           className={`block px-3 py-2 text-xs rounded-md transition-colors ${
                             location.pathname === sub.path 
-                            ? 'text-[#ff4d4d] font-bold bg-red-50/50' 
-                            : 'text-gray-500 hover:text-[#ff4d4d] hover:bg-red-50'
+                            ? 'text-[#7D2596] font-bold bg-purple-50/50' 
+                            : 'text-gray-500 hover:text-[#7D2596] hover:bg-purple-50'
                           }`}
                         >
                           • {sub.name}
@@ -161,12 +167,12 @@ export default function AdminLayout() {
 
           <div className="flex items-center gap-6">
             <div className="relative cursor-pointer">
-              <Bell size={22} className="text-gray-500 hover:text-[#ff4d4d] transition-colors" />
-              <span className="absolute -top-1 -right-1 bg-[#ff4d4d] text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-bold shadow-sm">4</span>
+              <Bell size={22} className="text-gray-500 hover:text-[#7D2596] transition-colors" />
+              <span className="absolute -top-1 -right-1 bg-[#7D2596] text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-bold shadow-sm">4</span>
             </div>
             <div className="flex items-center gap-3 pl-6 border-l border-gray-200">
-              <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-bold text-sm">
-                SA
+              <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-[#7D2596] font-bold text-sm border border-purple-200">
+                {currentUser?.displayName ? currentUser.displayName.charAt(0).toUpperCase() : 'A'}
               </div>
             </div>
           </div>

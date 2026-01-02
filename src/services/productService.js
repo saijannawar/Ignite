@@ -15,9 +15,17 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
+// ✅ Centralized Collection Names to prevent mismatches
 const PRODUCT_COLLECTION = "products";
+const BANNER_COLLECTION = "homeBanners"; // Matches your React Component fix
+const ORDER_COLLECTION = "orders";
+const USER_COLLECTION = "users";
 
-// 1. Upload Multiple Images
+// ==============================
+// 1. IMAGE UPLOAD SERVICES
+// ==============================
+
+// Upload Multiple Images
 export const uploadProductImages = async (files) => {
   if (!files || files.length === 0) return [];
 
@@ -30,7 +38,7 @@ export const uploadProductImages = async (files) => {
   return await Promise.all(uploadPromises);
 };
 
-// 2. Upload Single Image
+// Upload Single Image
 export const uploadProductImage = async (file) => {
   if (!file) return null;
   const storageRef = ref(storage, `products/${Date.now()}-${file.name}`);
@@ -38,40 +46,57 @@ export const uploadProductImage = async (file) => {
   return await getDownloadURL(snapshot.ref);
 };
 
-// 3. Add Product
+// Upload Banner Image
+export const uploadBannerImage = async (file) => {
+  if (!file) return null;
+  const storageRef = ref(storage, `banners/${Date.now()}-${file.name}`);
+  const snapshot = await uploadBytes(storageRef, file);
+  return await getDownloadURL(snapshot.ref);
+};
+
+// ==============================
+// 2. PRODUCT SERVICES
+// ==============================
+
+// Add Product (Includes Sub-Category Support)
 export const addProduct = async (productData) => {
   try {
     await addDoc(collection(db, PRODUCT_COLLECTION), {
       ...productData,
       createdAt: new Date(),
       price: parseFloat(productData.price),
-      oldPrice: parseFloat(productData.oldPrice || 0),
+      originalPrice: parseFloat(productData.originalPrice || 0), // Standardized name
       stock: parseInt(productData.stock || 0),
       discount: parseInt(productData.discount || 0),
       rating: parseInt(productData.rating || 0),
+      
+      // Categorization
+      category: productData.category,
+      categoryName: productData.categoryName || '',
+      subCategory: productData.subCategory || '',
+      
+      // Images
       images: productData.images || [],
-      imageUrl: productData.images && productData.images.length > 0 ? productData.images[0] : '',
-      isBanner: productData.isBanner || false,
-      bannerTitle: productData.bannerTitle || '',
-      bannerImageUrl: productData.bannerImageUrl || ''
+      imageUrl: productData.imageUrl || (productData.images && productData.images.length > 0 ? productData.images[0] : ''),
     });
   } catch (error) {
+    console.error("Error adding product:", error);
     throw error;
   }
 };
 
-// 4. Get All Products
+// Get All Products
 export const getProducts = async () => {
   const snapshot = await getDocs(collection(db, PRODUCT_COLLECTION));
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 };
 
-// 5. Delete Product
+// Delete Product
 export const deleteProduct = async (id) => {
   await deleteDoc(doc(db, PRODUCT_COLLECTION, id));
 };
 
-// 6. Get Single Product By ID
+// Get Single Product By ID
 export const getProductById = async (id) => {
   try {
     const productRef = doc(db, PRODUCT_COLLECTION, id);
@@ -89,7 +114,7 @@ export const getProductById = async (id) => {
   }
 };
 
-// 7. Add Review
+// Add Review
 export const addProductReview = async (productId, reviewData) => {
   try {
     const productRef = doc(db, PRODUCT_COLLECTION, productId);
@@ -102,10 +127,14 @@ export const addProductReview = async (productId, reviewData) => {
   }
 };
 
-// 8. Add To Wishlist
+// ==============================
+// 3. USER & WISHLIST SERVICES
+// ==============================
+
+// Add To Wishlist
 export const addToWishlist = async (userId, product) => {
   try {
-    const wishlistRef = doc(db, "users", userId, "wishlist", product.id);
+    const wishlistRef = doc(db, USER_COLLECTION, userId, "wishlist", product.id);
     await setDoc(wishlistRef, {
       productId: product.id,
       name: product.name,
@@ -119,34 +148,10 @@ export const addToWishlist = async (userId, product) => {
   }
 };
 
-// 9. ADD ADDRESS
-export const addUserAddress = async (userId, addressData) => {
-  try {
-    const addressRef = collection(db, "users", userId, "addresses");
-    const docRef = await addDoc(addressRef, addressData);
-    return { id: docRef.id, ...addressData };
-  } catch (error) {
-    console.error("Error adding address:", error);
-    throw error;
-  }
-};
-
-// 10. GET ADDRESSES
-export const getUserAddresses = async (userId) => {
-  try {
-    const addressRef = collection(db, "users", userId, "addresses");
-    const snapshot = await getDocs(addressRef);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  } catch (error) {
-    console.error("Error fetching addresses:", error);
-    return [];
-  }
-};
-
-// 11. GET USER WISHLIST
+// Get User Wishlist
 export const getUserWishlist = async (userId) => {
   try {
-    const wishlistRef = collection(db, "users", userId, "wishlist");
+    const wishlistRef = collection(db, USER_COLLECTION, userId, "wishlist");
     const snapshot = await getDocs(wishlistRef);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
@@ -155,10 +160,10 @@ export const getUserWishlist = async (userId) => {
   }
 };
 
-// 12. REMOVE FROM WISHLIST
+// Remove From Wishlist
 export const removeFromWishlist = async (userId, productId) => {
   try {
-    const itemRef = doc(db, "users", userId, "wishlist", productId);
+    const itemRef = doc(db, USER_COLLECTION, userId, "wishlist", productId);
     await deleteDoc(itemRef);
   } catch (error) {
     console.error("Error removing from wishlist:", error);
@@ -166,10 +171,34 @@ export const removeFromWishlist = async (userId, productId) => {
   }
 };
 
-// 13. DELETE ADDRESS
+// Add Address
+export const addUserAddress = async (userId, addressData) => {
+  try {
+    const addressRef = collection(db, USER_COLLECTION, userId, "addresses");
+    const docRef = await addDoc(addressRef, addressData);
+    return { id: docRef.id, ...addressData };
+  } catch (error) {
+    console.error("Error adding address:", error);
+    throw error;
+  }
+};
+
+// Get Addresses
+export const getUserAddresses = async (userId) => {
+  try {
+    const addressRef = collection(db, USER_COLLECTION, userId, "addresses");
+    const snapshot = await getDocs(addressRef);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error("Error fetching addresses:", error);
+    return [];
+  }
+};
+
+// Delete Address
 export const deleteUserAddress = async (userId, addressId) => {
   try {
-    const addressRef = doc(db, "users", userId, "addresses", addressId);
+    const addressRef = doc(db, USER_COLLECTION, userId, "addresses", addressId);
     await deleteDoc(addressRef);
   } catch (error) {
     console.error("Error deleting address:", error);
@@ -177,10 +206,10 @@ export const deleteUserAddress = async (userId, addressId) => {
   }
 };
 
-// 14. UPDATE ADDRESS
+// Update Address
 export const updateUserAddress = async (userId, addressId, addressData) => {
   try {
-    const addressRef = doc(db, "users", userId, "addresses", addressId);
+    const addressRef = doc(db, USER_COLLECTION, userId, "addresses", addressId);
     await updateDoc(addressRef, addressData);
   } catch (error) {
     console.error("Error updating address:", error);
@@ -188,10 +217,14 @@ export const updateUserAddress = async (userId, addressId, addressData) => {
   }
 };
 
-// 15. PLACE ORDER
+// ==============================
+// 4. ORDER SERVICES
+// ==============================
+
+// Place Order
 export const placeOrder = async (userId, orderData) => {
   try {
-    const docRef = await addDoc(collection(db, "orders"), {
+    const docRef = await addDoc(collection(db, ORDER_COLLECTION), {
       userId: userId,
       ...orderData,
       createdAt: new Date().toISOString()
@@ -203,11 +236,11 @@ export const placeOrder = async (userId, orderData) => {
   }
 };
 
-// 16. GET USER ORDERS
+// Get User Orders
 export const getUserOrders = async (userId) => {
   try {
     const q = query(
-      collection(db, "orders"), 
+      collection(db, ORDER_COLLECTION), 
       where("userId", "==", userId)
     );
     const snapshot = await getDocs(q);
@@ -218,23 +251,23 @@ export const getUserOrders = async (userId) => {
   }
 };
 
-// 17. GET ALL ORDERS
+// Get All Orders (Admin)
 export const getAllOrders = async () => {
   try {
-    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, ORDER_COLLECTION), orderBy("createdAt", "desc"));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
     console.warn("Fetching orders without sort (Index might be missing)");
-    const snapshot = await getDocs(collection(db, "orders"));
+    const snapshot = await getDocs(collection(db, ORDER_COLLECTION));
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   }
 };
 
-// 18. UPDATE ORDER STATUS
+// Update Order Status
 export const updateOrderStatus = async (orderId, newStatus) => {
   try {
-    const orderRef = doc(db, "orders", orderId);
+    const orderRef = doc(db, ORDER_COLLECTION, orderId);
     await updateDoc(orderRef, { status: newStatus });
   } catch (error) {
     console.error("Error updating order status:", error);
@@ -242,28 +275,24 @@ export const updateOrderStatus = async (orderId, newStatus) => {
   }
 };
 
-// 19. DELETE ORDER
+// Delete Order
 export const deleteOrder = async (orderId) => {
   try {
-    await deleteDoc(doc(db, "orders", orderId));
+    await deleteDoc(doc(db, ORDER_COLLECTION, orderId));
   } catch (error) {
     console.error("Error deleting order:", error);
     throw error;
   }
 };
 
-// 20. UPLOAD BANNER IMAGE
-export const uploadBannerImage = async (file) => {
-  if (!file) return null;
-  const storageRef = ref(storage, `banners/${Date.now()}-${file.name}`);
-  const snapshot = await uploadBytes(storageRef, file);
-  return await getDownloadURL(snapshot.ref);
-};
+// ==============================
+// 5. BANNER & SLIDER SERVICES
+// ==============================
 
-// 21. ADD BANNER
+// Add Banner
 export const addBanner = async (bannerData) => {
   try {
-    await addDoc(collection(db, "banners"), {
+    await addDoc(collection(db, BANNER_COLLECTION), {
       ...bannerData,
       createdAt: new Date().toISOString()
     });
@@ -273,45 +302,30 @@ export const addBanner = async (bannerData) => {
   }
 };
 
-// ✅ 22. GET BANNERS (UPDATED TO SUPPORT TYPE FILTERING)
-export const getBanners = async (type) => {
-  try {
-    let q;
-    
-    // If a specific type (e.g., 'home_1', 'home_2') is requested, filter by it
-    if (type) {
-      q = query(collection(db, "banners"), where("type", "==", type));
-    } else {
-      // If no type is provided, fetch all (backward compatibility)
-      q = collection(db, "banners");
-    }
-
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  } catch (error) {
-    console.error("Error fetching banners:", error);
-    return [];
-  }
-};
-
-// 23. DELETE BANNER
-export const deleteBanner = async (id) => {
-  try {
-    await deleteDoc(doc(db, "banners", id));
-  } catch (error) {
-    console.error("Error deleting banner:", error);
-    throw error;
-  }
-};
-
-// ✅ 24. GET HOME SLIDES
+// ✅ Get Home Slides (Using 'homeBanners' collection)
 export const getHomeSlides = async () => {
   try {
-    // Matches "home_banners" from your Admin Panel logic
-    const snapshot = await getDocs(collection(db, "home_banners")); 
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const snapshot = await getDocs(collection(db, BANNER_COLLECTION)); 
+    // Ensure they are sorted by order if the field exists
+    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return data.sort((a, b) => (a.order || 0) - (b.order || 0));
   } catch (error) {
     console.error("Error fetching home slides:", error);
     return [];
+  }
+};
+
+// ✅ Generic Get Banners (Alias for getHomeSlides or separate logic if needed)
+export const getBanners = async () => {
+  return await getHomeSlides();
+};
+
+// Delete Banner
+export const deleteBanner = async (id) => {
+  try {
+    await deleteDoc(doc(db, BANNER_COLLECTION, id));
+  } catch (error) {
+    console.error("Error deleting banner:", error);
+    throw error;
   }
 };
