@@ -355,7 +355,7 @@ export default function Navbar({ onOpenSidebar }) {
 
                <div className="hidden md:flex gap-8 text-[13px] font-semibold text-gray-500 tracking-wide">
                   <Link to="/" className="hover:text-[#7D2596] transition-colors uppercase">Home</Link>
-                  <a href="https://wa.me/919011401920" target="_blank" rel="noopener noreferrer" className="hover:text-[#7D2596] transition-colors uppercase">Bulk Enquiry</a>
+                  <a href="https://wa.me/919011401920" target="_blank" rel="noopener noreferrer" className="hover:text-[#7D2596] transition-colors uppercase">Bulk & Product Enquiry (Same-Day Delivery)</a>
                   <Link to="/about" className="hover:text-[#7D2596] transition-colors uppercase">About</Link>
                </div>
 

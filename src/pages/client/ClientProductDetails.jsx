@@ -162,13 +162,31 @@ export default function ClientProductDetails() {
     }
   };
 
+  // ✅ NEW: Handle Share Logic (Mobile Native Share or Clipboard Copy)
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: product.name,
+          text: `Check out ${product.name} on Ignite!`,
+          url: window.location.href,
+        });
+      } catch (error) {
+        console.log('Error sharing', error);
+      }
+    } else {
+      // Fallback for desktop
+      navigator.clipboard.writeText(window.location.href);
+      alert("Link copied to clipboard!");
+    }
+  };
+
   const handleAddToCart = () => {
       if (product) {
           addToCart({ ...product, quantity });
       }
   };
 
-  // ✅ UPDATED: Redirects to /cart instead of /checkout
   const handleBuyNow = () => {
     if (!currentUser) {
         alert("Please login to proceed");
@@ -177,7 +195,7 @@ export default function ClientProductDetails() {
     }
     if (product) {
       addToCart({ ...product, quantity });
-      navigate('/cart'); // <--- Changed from '/checkout' to '/cart'
+      navigate('/cart'); 
     }
   };
 
@@ -276,7 +294,12 @@ export default function ClientProductDetails() {
                   </div>
                 )}
                 
-                <button className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-md text-gray-400 hover:text-[#7D2596] transition-colors">
+                {/* ✅ UPDATED: Responsive Share Button */}
+                <button 
+                  onClick={handleShare}
+                  className="absolute top-4 right-4 z-10 p-2 bg-white rounded-full shadow-md text-gray-400 hover:text-[#7D2596] hover:scale-110 transition-all active:scale-95"
+                  title="Share Product"
+                >
                   <Share2 size={18} />
                 </button>
               </div>
@@ -364,9 +387,7 @@ export default function ClientProductDetails() {
                 <Heart size={18} fill={inWishlist ? "currentColor" : "none"} /> 
                 {inWishlist ? "Saved to Wishlist" : "Add to Wishlist"}
               </button>
-              <button className="flex items-center gap-2 hover:text-[#7D2596] transition-colors">
-                <Repeat size={18} /> Compare
-              </button>
+              
             </div>
 
             {/* Service Features */}
@@ -375,14 +396,14 @@ export default function ClientProductDetails() {
                    <Truck size={24} className="text-[#7D2596]" />
                    <div>
                       <p className="text-sm font-bold text-gray-800">Free Shipping</p>
-                      <p className="text-[10px] text-gray-500">On all orders over ₹500</p>
+                      <p className="text-[10px] text-gray-500">On VIT Pune College Pickup</p>
                    </div>
                 </div>
                  <div className="flex items-center gap-3">
                    <ShieldCheck size={24} className="text-[#7D2596]" />
                    <div>
-                      <p className="text-sm font-bold text-gray-800">Secure Payment</p>
-                      <p className="text-[10px] text-gray-500">100% Protected</p>
+                      <p className="text-sm font-bold text-gray-800">Cash On Delivery</p>
+                      <p className="text-[10px] text-gray-500">Pay upon receiving</p>
                    </div>
                 </div>
                  <div className="flex items-center gap-3">

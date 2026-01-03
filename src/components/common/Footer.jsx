@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Truck, 
@@ -15,8 +15,27 @@ import {
   Package,
   FileText
 } from 'lucide-react';
+import { collection, getDocs, limit, query } from 'firebase/firestore'; // ✅ Import Firestore functions
+import { db } from '../../config/firebase'; // ✅ Import DB config
 
 const Footer = () => {
+  const [categories, setCategories] = useState([]);
+
+  // ✅ Fetch Top 4 Categories Dynamically
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const q = query(collection(db, "categories"), limit(4)); // Get only 4
+        const querySnapshot = await getDocs(q);
+        const cats = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setCategories(cats);
+      } catch (error) {
+        console.error("Error fetching footer categories:", error);
+      }
+    };
+    fetchCategories();
+  }, []);
+
   return (
     <footer className="bg-white border-t border-gray-200 font-sans pb-24 md:pb-0 text-gray-700">
       
@@ -31,7 +50,7 @@ const Footer = () => {
                     <Truck size={28} className="text-[#7D2596] group-hover:text-white transition-colors" />
                 </div>
                 <h4 className="font-bold text-gray-900 text-sm uppercase mb-1">Free Shipping</h4>
-                <p className="text-xs text-gray-500">On VIT College Pickup</p>
+                <p className="text-xs text-gray-500">On VIT Pune College Pickup</p>
             </div>
 
             {/* Feature 2 */}
@@ -113,15 +132,25 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* COLUMN 2: Categories */}
+          {/* COLUMN 2: Categories (Dynamic) */}
           <div className="lg:pl-6">
             <h3 className="text-lg font-bold text-gray-900 mb-6 border-b-2 border-[#7D2596] inline-block pb-1">Categories</h3>
             <ul className="space-y-3 text-sm text-gray-500">
-              <li><Link to="/shop?category=Sensors" className="hover:text-[#7D2596] hover:translate-x-1 transition-all flex items-center gap-2"><div className="w-1.5 h-1.5 bg-gray-300 rounded-full"></div> Sensors</Link></li>
-              <li><Link to="/shop?category=Arduino" className="hover:text-[#7D2596] hover:translate-x-1 transition-all flex items-center gap-2"><div className="w-1.5 h-1.5 bg-gray-300 rounded-full"></div> Arduino Boards</Link></li>
-              <li><Link to="/shop?category=Modules" className="hover:text-[#7D2596] hover:translate-x-1 transition-all flex items-center gap-2"><div className="w-1.5 h-1.5 bg-gray-300 rounded-full"></div> Modules</Link></li>
-              <li><Link to="/shop?category=Robotics" className="hover:text-[#7D2596] hover:translate-x-1 transition-all flex items-center gap-2"><div className="w-1.5 h-1.5 bg-gray-300 rounded-full"></div> Robotics</Link></li>
-              <li><Link to="/shop" className="hover:text-[#7D2596] hover:translate-x-1 transition-all flex items-center gap-2"><div className="w-1.5 h-1.5 bg-gray-300 rounded-full"></div> View All Products</Link></li>
+              {/* Dynamic Categories */}
+              {categories.map((cat) => (
+                <li key={cat.id}>
+                  <Link to={`/shop?category=${cat.id}`} className="hover:text-[#7D2596] hover:translate-x-1 transition-all flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-gray-300 rounded-full"></div> {cat.name}
+                  </Link>
+                </li>
+              ))}
+              
+              {/* 5th Link: View All */}
+              <li>
+                <Link to="/shop" className="hover:text-[#7D2596] hover:translate-x-1 transition-all flex items-center gap-2 font-semibold">
+                  <div className="w-1.5 h-1.5 bg-[#7D2596] rounded-full"></div> View All Products
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -175,7 +204,7 @@ const Footer = () => {
       <div className="border-t border-gray-200 bg-gray-50">
         <div className="container mx-auto px-4 py-6 text-center">
           <p className="text-xs text-gray-500 font-medium">
-             © {new Date().getFullYear()} Ignite Ideas. All Rights Reserved. Designed for VIT Pune.
+              © {new Date().getFullYear()} Ignite Ideas. All Rights Reserved. Designed for VIT Pune.
           </p>
         </div>
       </div>
