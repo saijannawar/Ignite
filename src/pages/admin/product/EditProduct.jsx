@@ -15,7 +15,7 @@ export default function EditProduct() {
   
   const [categories, setCategories] = useState([]);
   const [subCategoryOptions, setSubCategoryOptions] = useState([]); 
-  const [isManualInput, setIsManualInput] = useState(false); // Fallback state
+  const [isManualInput, setIsManualInput] = useState(false); 
 
   const [formData, setFormData] = useState({
     name: '',
@@ -34,10 +34,8 @@ export default function EditProduct() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        console.log("Fetching Categories...");
         const catSnapshot = await getDocs(collection(db, "categories"));
         const cats = catSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        console.log("Categories Found:", cats);
         setCategories(cats);
 
         const docRef = doc(db, "products", id);
@@ -70,7 +68,7 @@ export default function EditProduct() {
     fetchData();
   }, [id, navigate]);
 
-  // 2. ✅ ULTRA ROBUST SUB-CATEGORY FETCHER
+  // 2. ✅ FIXED SUB-CATEGORY FETCHER
   useEffect(() => {
     const fetchSubCategories = async () => {
         if (!formData.category) {
@@ -78,53 +76,28 @@ export default function EditProduct() {
             return;
         }
 
-        console.log("🔍 Looking for sub-categories for Category ID:", formData.category);
-        let options = [];
-
-        // STRATEGY 1: Check inside the Category Document (Array)
-        const selectedCat = categories.find(c => c.id === formData.category);
-        if (selectedCat && selectedCat.subCategories && Array.isArray(selectedCat.subCategories)) {
-            console.log("✅ Found in Category Array");
-            options = selectedCat.subCategories.map(s => typeof s === 'object' ? s.name : s);
-        } 
-        
-        // STRATEGY 2: Check 'subcategories' Root Collection
-        if (options.length === 0) {
-            try {
-                const q = query(collection(db, "subcategories"), where("categoryId", "==", formData.category));
-                const subSnap = await getDocs(q);
-                if (!subSnap.empty) {
-                    console.log("✅ Found in 'subcategories' collection");
-                    options = subSnap.docs.map(doc => doc.data().name);
-                }
-            } catch (err) { console.log("Did not find in root subcategories collection"); }
-        }
-
-        // STRATEGY 3: Check Sub-Collection (categories/{id}/subcategories)
-        if (options.length === 0) {
-            try {
-                const subColRef = collection(db, "categories", formData.category, "subcategories");
-                const subColSnap = await getDocs(subColRef);
-                if (!subColSnap.empty) {
-                    console.log("✅ Found in sub-collection");
-                    options = subColSnap.docs.map(doc => doc.data().name);
-                }
-            } catch (err) { console.log("Did not find in sub-collection"); }
-        }
-
-        // Final Decision
-        if (options.length > 0) {
-            setSubCategoryOptions(options);
-            setIsManualInput(false);
-        } else {
-            console.warn("⚠️ No sub-categories found. Switching to manual input.");
-            setSubCategoryOptions([]);
-            setIsManualInput(true); // Enable text box fallback
+        try {
+            // Query 'subcategories' collection where 'parentCategoryId' matches the selected category ID
+            const q = query(collection(db, "subcategories"), where("parentCategoryId", "==", formData.category));
+            const querySnapshot = await getDocs(q);
+            
+            const options = querySnapshot.docs.map(doc => doc.data().name);
+            
+            if (options.length > 0) {
+                setSubCategoryOptions(options);
+                setIsManualInput(false); // Show Dropdown
+            } else {
+                setSubCategoryOptions([]);
+                setIsManualInput(true); // Fallback to manual input if empty
+            }
+        } catch (error) {
+            console.error("Error fetching subcategories:", error);
+            setIsManualInput(true); // Fallback on error
         }
     };
 
     fetchSubCategories();
-  }, [formData.category, categories]);
+  }, [formData.category]);
 
   const handleCategoryChange = (e) => {
     setFormData(prev => ({ ...prev, category: e.target.value, subCategory: '' }));
@@ -182,48 +155,48 @@ export default function EditProduct() {
     } finally { setUpdating(false); }
   };
 
-  if (loading) return <div className="p-10 text-center"><Loader className="animate-spin mx-auto" /></div>;
+  if (loading) return <div className="p-10 text-center"><Loader className="animate-spin mx-auto text-[#7D2596]" /></div>;
 
   return (
     <div className="p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md mt-10">
       <div className="flex items-center gap-4 mb-6">
         <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-full"><ArrowLeft size={20}/></button>
-        <h1 className="text-2xl font-bold">Edit Product</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Edit Product</h1>
       </div>
 
       <form onSubmit={handleUpdate} className="space-y-6">
         <div className="grid grid-cols-2 gap-6">
-            <div><label className="block text-sm font-bold mb-1">Name</label><input name="name" value={formData.name} onChange={handleChange} className="w-full p-3 border rounded" required /></div>
-            <div><label className="block text-sm font-bold mb-1">Brand</label><input name="brand" value={formData.brand} onChange={handleChange} className="w-full p-3 border rounded" /></div>
+            <div><label className="block text-sm font-bold mb-1 text-gray-700">Name</label><input name="name" value={formData.name} onChange={handleChange} className="w-full p-3 border rounded focus:border-[#7D2596] outline-none" required /></div>
+            <div><label className="block text-sm font-bold mb-1 text-gray-700">Brand</label><input name="brand" value={formData.brand} onChange={handleChange} className="w-full p-3 border rounded focus:border-[#7D2596] outline-none" /></div>
         </div>
 
         <div className="grid grid-cols-3 gap-4">
-            <div><label className="block text-sm font-bold mb-1">Price</label><input type="number" name="price" value={formData.price} onChange={handleChange} className="w-full p-3 border rounded" required /></div>
-            <div><label className="block text-sm font-bold mb-1">Original Price</label><input type="number" name="originalPrice" value={formData.originalPrice} onChange={handleChange} className="w-full p-3 border rounded" /></div>
-            <div><label className="block text-sm font-bold mb-1">Stock</label><input type="number" name="stock" value={formData.stock} onChange={handleChange} className="w-full p-3 border rounded" required /></div>
+            <div><label className="block text-sm font-bold mb-1 text-gray-700">Price</label><input type="number" name="price" value={formData.price} onChange={handleChange} className="w-full p-3 border rounded focus:border-[#7D2596] outline-none" required /></div>
+            <div><label className="block text-sm font-bold mb-1 text-gray-700">Original Price</label><input type="number" name="originalPrice" value={formData.originalPrice} onChange={handleChange} className="w-full p-3 border rounded focus:border-[#7D2596] outline-none" /></div>
+            <div><label className="block text-sm font-bold mb-1 text-gray-700">Stock</label><input type="number" name="stock" value={formData.stock} onChange={handleChange} className="w-full p-3 border rounded focus:border-[#7D2596] outline-none" required /></div>
         </div>
 
         <div className="grid grid-cols-2 gap-6">
             <div>
-                <label className="block text-sm font-bold mb-1">Category</label>
-                <select name="category" value={formData.category} onChange={handleCategoryChange} className="w-full p-3 border rounded bg-white" required>
+                <label className="block text-sm font-bold mb-1 text-gray-700">Category</label>
+                <select name="category" value={formData.category} onChange={handleCategoryChange} className="w-full p-3 border rounded bg-white focus:border-[#7D2596] outline-none" required>
                     <option value="">Select Category</option>
                     {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
                 </select>
             </div>
             <div>
-                <label className="block text-sm font-bold mb-1">Sub Category</label>
-                {/* ✅ DYNAMIC SWITCH: Dropdown or Input */}
+                <label className="block text-sm font-bold mb-1 text-gray-700">Sub Category</label>
+                {/* ✅ Dropdown Logic */}
                 {isManualInput ? (
                     <input 
                         name="subCategory" 
                         value={formData.subCategory} 
                         onChange={handleChange} 
-                        placeholder="Type sub-category manually..."
-                        className="w-full p-3 border rounded focus:border-blue-500" 
+                        placeholder="No sub-categories found (Type manually)"
+                        className="w-full p-3 border rounded focus:border-[#7D2596] outline-none" 
                     />
                 ) : (
-                    <select name="subCategory" value={formData.subCategory} onChange={handleChange} className="w-full p-3 border rounded bg-white" disabled={!formData.category}>
+                    <select name="subCategory" value={formData.subCategory} onChange={handleChange} className="w-full p-3 border rounded bg-white focus:border-[#7D2596] outline-none" disabled={!formData.category}>
                         <option value="">Select Sub Category</option>
                         {subCategoryOptions.map((sub, i) => <option key={i} value={sub}>{sub}</option>)}
                     </select>
@@ -232,30 +205,31 @@ export default function EditProduct() {
         </div>
 
         <div className="space-y-4">
-             <label className="block text-sm font-bold">Images</label>
+             <label className="block text-sm font-bold text-gray-700">Images</label>
              <div className="flex items-center gap-4">
-                 <label className={`flex items-center gap-2 px-4 py-2 rounded font-bold cursor-pointer ${uploadingImage ? 'bg-gray-200' : 'bg-black text-white'}`}>
-                    {uploadingImage ? <Loader className="animate-spin" size={16}/> : <Upload size={16}/>} Upload
+                 <label className={`flex items-center gap-2 px-4 py-2 rounded font-bold cursor-pointer transition-all ${uploadingImage ? 'bg-gray-200 text-gray-500' : 'bg-black text-white hover:bg-gray-800'}`}>
+                    {uploadingImage ? <Loader className="animate-spin" size={16}/> : <Upload size={16}/>} Upload Image
                     <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" disabled={uploadingImage}/>
                  </label>
              </div>
              <div className="grid grid-cols-5 gap-4">
                  {formData.images.map((img, i) => (
-                    <div key={i} className={`relative group border-2 rounded-lg overflow-hidden aspect-square ${formData.imageUrl === img ? 'border-purple-500' : 'border-gray-200'}`}>
-                        <img src={img} className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-2">
-                            <button type="button" onClick={() => handleSetMain(img)} className="text-xs bg-white px-2 py-1 rounded">Main</button>
-                            <button type="button" onClick={() => handleRemoveImage(i)} className="bg-red-500 text-white p-1 rounded-full"><Trash2 size={12}/></button>
+                    <div key={i} className={`relative group border-2 rounded-lg overflow-hidden aspect-square ${formData.imageUrl === img ? 'border-[#7D2596] ring-2 ring-purple-100' : 'border-gray-200'}`}>
+                        <img src={img} className="w-full h-full object-cover" alt="product" />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-2 transition-opacity">
+                            <button type="button" onClick={() => handleSetMain(img)} className="text-xs bg-white px-2 py-1 rounded font-bold hover:bg-gray-100">Set Main</button>
+                            <button type="button" onClick={() => handleRemoveImage(i)} className="bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600"><Trash2 size={14}/></button>
                         </div>
                     </div>
                  ))}
              </div>
         </div>
 
-        <div><label className="block text-sm font-bold mb-1">Description</label><textarea name="description" rows="5" value={formData.description} onChange={handleChange} className="w-full p-3 border rounded"></textarea></div>
+        <div><label className="block text-sm font-bold mb-1 text-gray-700">Description</label><textarea name="description" rows="5" value={formData.description} onChange={handleChange} className="w-full p-3 border rounded focus:border-[#7D2596] outline-none"></textarea></div>
 
-        <button type="submit" disabled={updating} className="w-full py-4 bg-[#7D2596] text-white font-bold rounded hover:bg-purple-800 disabled:bg-gray-400">
-          {updating ? 'Saving...' : 'Update Product'}
+        <button type="submit" disabled={updating} className="w-full py-4 bg-[#7D2596] text-white font-bold rounded hover:bg-[#631d76] transition-all flex items-center justify-center gap-2 disabled:opacity-70 shadow-lg shadow-purple-100">
+          {updating ? <Loader className="animate-spin" size={20} /> : <Save size={20} />}
+          {updating ? 'Updating...' : 'Update Product'}
         </button>
       </form>
     </div>

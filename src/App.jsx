@@ -5,7 +5,7 @@ import { CartProvider } from './context/CartContext';
 
 // ✅ Import Preloader & ScrollToTop
 import Preloader from './components/common/Preloader';
-import ScrollToTop from './components/common/ScrollToTop'; // <--- NEW IMPORT
+import ScrollToTop from './components/common/ScrollToTop'; 
 
 // --- LAZY LOAD PAGES (For Better Performance) ---
 // Auth
@@ -35,6 +35,8 @@ const CategoryList = lazy(() => import('./pages/admin/category/CategoryList'));
 const AddCategory = lazy(() => import('./pages/admin/category/AddCategory'));
 const SubCategoryList = lazy(() => import('./pages/admin/category/SubCategoryList'));
 const AddSubCategory = lazy(() => import('./pages/admin/category/AddSubCategory'));
+const EditSubCategory = lazy(() => import('./pages/admin/category/EditSubCategory')); // ✅ NEW IMPORT
+const EditCategory = lazy(() => import('./pages/admin/category/EditCategory'));
 const BannerList1 = lazy(() => import('./pages/admin/banners/BannerList1'));
 const AddBanner1 = lazy(() => import('./pages/admin/banners/AddBanner1'));
 const BannerList2 = lazy(() => import('./pages/admin/banners/BannerList2'));
@@ -145,6 +147,8 @@ const AppContent = () => {
           {/* Sub Category Management */}
           <Route path="subcategory" element={<SubCategoryList />} />
           <Route path="subcategory/add" element={<AddSubCategory />} />
+          <Route path="subcategory/edit/:id" element={<EditSubCategory />} /> {/* ✅ ADDED THIS ROUTE */}
+          <Route path="category/edit/:id" element={<EditCategory />} />
 
           {/* Banner Management Routes */}
           <Route path="banners/home-1" element={<BannerList1 />} />

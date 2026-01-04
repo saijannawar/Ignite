@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Trash2, ArrowUp, ArrowDown, Plus, Loader } from 'lucide-react';
+import { Trash2, Edit2, ArrowUp, ArrowDown, Plus, Loader } from 'lucide-react';
 import { getCategories, deleteCategory } from '../../../services/categoryService';
 import { writeBatch, doc } from 'firebase/firestore';
 import { db } from '../../../config/firebase';
@@ -8,13 +8,13 @@ import { db } from '../../../config/firebase';
 export default function CategoryList() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(false); // To show saving status
+  const [updating, setUpdating] = useState(false);
 
   // --- 1. FETCH & SORT ---
   const fetchData = async () => {
     try {
       const data = await getCategories();
-      // ✅ Sort by 'order' field immediately after fetching
+      // Sort by 'order' field. If 'order' is missing, default to 0.
       const sortedData = data.sort((a, b) => (a.order || 0) - (b.order || 0));
       setCategories(sortedData);
     } catch (error) {
@@ -32,48 +32,58 @@ export default function CategoryList() {
   const saveOrderToFirebase = async (updatedCategories) => {
     setUpdating(true);
     try {
+      // Use a Batch write for efficiency (all updates happen at once)
       const batch = writeBatch(db);
       
       updatedCategories.forEach((cat, index) => {
+        if (!cat.id) return; // Safety check
         const docRef = doc(db, "categories", cat.id);
+        // We update the 'order' field to match the array index
         batch.update(docRef, { order: index });
       });
 
       await batch.commit();
-      console.log("Order saved!");
+      console.log("Order saved successfully to Firebase!");
     } catch (error) {
       console.error("Failed to save order:", error);
-      alert("Failed to save new order to database.");
+      alert("Failed to save new order. Please refresh and try again.");
     } finally {
       setUpdating(false);
     }
   };
 
-  // --- 3. MOVE HANDLERS ---
+  // --- 3. MOVE UP HANDLER ---
   const moveUp = (index) => {
-    if (index === 0) return;
+    if (index === 0) return; // Already at top
+    
+    // Create a copy of the array
     const newCategories = [...categories];
     
-    // Swap items
+    // Swap current item with the one above it
     const temp = newCategories[index];
     newCategories[index] = newCategories[index - 1];
     newCategories[index - 1] = temp;
     
-    setCategories(newCategories); // Update UI
-    saveOrderToFirebase(newCategories); // Update DB
+    // Update UI immediately
+    setCategories(newCategories);
+    
+    // Save new order to Database
+    saveOrderToFirebase(newCategories);
   };
 
+  // --- 4. MOVE DOWN HANDLER ---
   const moveDown = (index) => {
-    if (index === categories.length - 1) return;
+    if (index === categories.length - 1) return; // Already at bottom
+    
     const newCategories = [...categories];
     
-    // Swap items
+    // Swap current item with the one below it
     const temp = newCategories[index];
     newCategories[index] = newCategories[index + 1];
     newCategories[index + 1] = temp;
     
-    setCategories(newCategories); // Update UI
-    saveOrderToFirebase(newCategories); // Update DB
+    setCategories(newCategories);
+    saveOrderToFirebase(newCategories);
   };
 
   // Handle Delete
@@ -91,7 +101,11 @@ export default function CategoryList() {
       <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <div className="flex items-center gap-4">
             <h2 className="text-xl font-bold text-gray-800">Category List</h2>
-            {updating && <span className="text-xs text-[#7D2596] font-bold flex items-center gap-1"><Loader size={12} className="animate-spin"/> Saving Order...</span>}
+            {updating && (
+              <span className="text-xs text-[#7D2596] font-bold flex items-center gap-1 bg-purple-50 px-2 py-1 rounded-full animate-pulse">
+                <Loader size={12} className="animate-spin"/> Saving Order...
+              </span>
+            )}
         </div>
         <Link to="/admin/category/add">
           <button className="bg-[#7D2596] hover:bg-[#631d76] text-white px-6 py-2.5 rounded-lg text-sm font-bold shadow-md shadow-purple-100 flex items-center gap-2 transition-all">
@@ -122,9 +136,7 @@ export default function CategoryList() {
                 <tr key={cat.id} className="hover:bg-purple-50/30 transition-colors group">
                   
                   {/* Order Index */}
-                  <td className="p-5 text-center font-bold text-gray-400">
-                    #{index + 1}
-                  </td>
+                  <td className="p-5 text-center font-bold text-gray-400">#{index + 1}</td>
 
                   {/* Image */}
                   <td className="p-5">
@@ -138,30 +150,41 @@ export default function CategoryList() {
 
                   {/* Move Buttons */}
                   <td className="p-5">
-                     <div className="flex items-center justify-center gap-2">
+                      <div className="flex items-center justify-center gap-2">
+                        {/* UP Button */}
                         <button 
                           onClick={() => moveUp(index)}
                           disabled={index === 0 || updating}
                           className={`p-2 rounded-full transition-colors ${index === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-100 hover:text-[#7D2596]'}`}
+                          title="Move Up"
                         >
                           <ArrowUp size={18} />
                         </button>
+
+                        {/* DOWN Button */}
                         <button 
                           onClick={() => moveDown(index)}
                           disabled={index === categories.length - 1 || updating}
                           className={`p-2 rounded-full transition-colors ${index === categories.length - 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-100 hover:text-[#7D2596]'}`}
+                          title="Move Down"
                         >
                           <ArrowDown size={18} />
                         </button>
-                     </div>
+                      </div>
                   </td>
 
                   {/* Action Buttons */}
                   <td className="p-5">
                     <div className="flex items-center justify-center gap-3">
-                      {/* Removed Edit Button to simplify action column as requested previously, or keep it if needed */}
-                      {/* <button className="p-2 bg-green-50 text-green-600 rounded hover:bg-green-100"><Edit2 size={16} /></button> */}
                       
+                      {/* Edit Button */}
+                      <Link to={`/admin/category/edit/${cat.id}`}>
+                        <button className="p-2.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 hover:text-green-700 transition-all shadow-sm">
+                            <Edit2 size={18} />
+                        </button>
+                      </Link>
+                      
+                      {/* Delete Button */}
                       <button 
                         onClick={() => handleDelete(cat.id)}
                         className="p-2.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 hover:text-red-700 transition-all shadow-sm"
@@ -175,12 +198,6 @@ export default function CategoryList() {
             )}
           </tbody>
         </table>
-        
-        {/* Footer info */}
-        <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center text-xs text-gray-500">
-           <span>Total Categories: {categories.length}</span>
-           <span>Reordering auto-saves to database</span>
-        </div>
       </div>
     </div>
   );

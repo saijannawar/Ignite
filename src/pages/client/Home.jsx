@@ -50,6 +50,11 @@ export default function Home() {
         setHeroSlides(slidesData); 
         setHomeList1Banners(list1Data); 
         setHomeList2Banners(list2Data); 
+        
+        // ✅ SORT CATEGORIES BY ORDER (Admin Panel Sync)
+        if (categoryData && categoryData.length > 0) {
+            categoryData.sort((a, b) => (a.order || 0) - (b.order || 0));
+        }
         setCategories(categoryData);
 
         const formattedProducts = productData.map((p) => {
@@ -196,18 +201,19 @@ export default function Home() {
 
       <div className="bg-white pt-4 pb-10"> 
         
-        {/* ✅ POPULAR PRODUCTS - WITH GAP FIX */}
+        {/* ✅ POPULAR PRODUCTS - WITH GAP & SCROLL FIX */}
         <div className="container mx-auto px-4 mb-10 relative group/slider"> 
           
-          <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-gray-200 pb-2 mb-4"> 
+          <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-gray-200 pb-2 mb-4 gap-4"> 
             
-            {/* Added md:mr-8 here to create space between title and tabs */}
-            <div className="flex-shrink-0 md:mr-8 mb-3 md:mb-0">
+            {/* Title: Fixed width on large screens to prevent squashing */}
+            <div className="flex-shrink-0 md:mr-4">
               <h2 className="text-2xl font-bold text-gray-800">Popular Products</h2>
             </div>
 
-            <div className="flex-1 overflow-hidden w-full md:w-auto">
-                <div className="flex gap-6 overflow-x-auto pb-2 scrollbar-hide w-full md:justify-end">
+            {/* Filter Tabs: min-w-0 is CRITICAL for flex children to scroll properly */}
+            <div className="flex-1 min-w-0 overflow-hidden w-full">
+                <div className="flex gap-6 overflow-x-auto pb-2 scrollbar-hide w-full items-center">
                     <button onClick={() => setActiveTab('ALL')} className={`whitespace-nowrap pb-1 text-sm font-bold uppercase transition-all border-b-[3px] ${activeTab === 'ALL' ? 'text-[#7D2596] border-[#7D2596]' : 'text-gray-500 border-transparent hover:text-gray-800'}`}>ALL</button>
                     {categories.map((cat) => (
                     <button key={cat.id} onClick={() => setActiveTab(cat.id)} className={`whitespace-nowrap pb-1 text-sm font-bold uppercase transition-all border-b-[3px] ${activeTab === cat.id ? 'text-[#7D2596] border-[#7D2596]' : 'text-gray-500 border-transparent hover:text-gray-800'}`}>{cat.name}</button>
@@ -230,7 +236,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ✅ SHIPPING INFO & BANNER LIST 1 */}
+        {/* SHIPPING INFO & BANNER LIST 1 */}
         <div className="container mx-auto px-4 max-w-7xl mt-0 space-y-4 mb-10">
           
           <div className="w-full bg-white border-l-4 border-[#7D2596] rounded-r-lg p-4 flex flex-col md:flex-row items-center justify-between shadow-sm bg-purple-50/20">

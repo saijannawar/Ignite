@@ -1,117 +1,115 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { CloudUpload } from 'lucide-react';
-import { getCategories } from '../../../services/categoryService'; // To populate dropdown
-import { addSubCategory } from '../../../services/subCategoryService'; // To save data
+import { useNavigate, Link } from 'react-router-dom';
+import { ArrowLeft, Save, Loader } from 'lucide-react';
+import { getCategories } from '../../../services/categoryService';
+import { addSubCategory } from '../../../services/subCategoryService'; // ✅ Uses the correct service
 
 export default function AddSubCategory() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState([]);
   
-  // State
-  const [categories, setCategories] = useState([]); // List of Main Categories
-  const [selectedParentId, setSelectedParentId] = useState('');
-  const [subCatName, setSubCatName] = useState('');
+  const [formData, setFormData] = useState({
+    name: '',
+    parentCategoryId: ''
+  });
 
-  // 1. Fetch Main Categories on Load
+  // 1. Fetch Main Categories for Dropdown
   useEffect(() => {
-    const loadCategories = async () => {
-      const data = await getCategories();
-      setCategories(data);
+    const fetchCats = async () => {
+      try {
+        const data = await getCategories();
+        setCategories(data);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
     };
-    loadCategories();
+    fetchCats();
   }, []);
 
   // 2. Handle Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedParentId || !subCatName) return alert("Please fill all fields");
+    
+    if (!formData.name || !formData.parentCategoryId) {
+      alert("Please select a category and enter a name.");
+      return;
+    }
 
     setLoading(true);
     try {
-      // Find name of parent for reference
-      const parentCat = categories.find(c => c.id === selectedParentId);
-
+      // Find the name of the parent category for reference (optional but useful)
+      const parentCat = categories.find(c => c.id === formData.parentCategoryId);
+      
       await addSubCategory({
-        name: subCatName,
-        parentCategoryId: selectedParentId,
-        parentCategoryName: parentCat?.name || 'Unknown'
+        name: formData.name,
+        parentCategoryId: formData.parentCategoryId,
+        parentCategoryName: parentCat ? parentCat.name : '' 
       });
 
-      alert("Sub Category Added!");
-      navigate('/admin/subcategory');
+      alert("Sub Category Added Successfully!");
+      navigate('/admin/subcategory'); // Redirect to list
     } catch (error) {
-      console.error("Error:", error);
-      alert("Failed to add");
+      console.error("Error adding sub category:", error);
+      alert("Failed to add sub category.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <h2 className="text-xl font-bold text-gray-800">Add New Sub Category</h2>
+    <div className="max-w-2xl mx-auto space-y-6">
+      
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Link to="/admin/subcategory" className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600">
+          <ArrowLeft size={20} />
+        </Link>
+        <h2 className="text-xl font-bold text-gray-800">Add Sub Category</h2>
+      </div>
 
-      <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+      {/* Form Card */}
+      <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
         <form onSubmit={handleSubmit} className="space-y-6">
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Left Side: Add Sub Category */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-gray-700 border-b pb-2">Add Sub Category</h3>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Product Category</label>
-                <select 
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none bg-white text-gray-700"
-                  value={selectedParentId}
-                  onChange={(e) => setSelectedParentId(e.target.value)}
-                >
-                  <option value="">Select Category</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Sub Category Name</label>
-                <input 
-                  type="text" 
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none"
-                  placeholder="e.g., Men, Mobile, Laptops"
-                  value={subCatName}
-                  onChange={(e) => setSubCatName(e.target.value)}
-                />
-              </div>
-
-              <button 
-                type="submit" 
-                disabled={loading}
-                className="bg-[#3b82f6] hover:bg-blue-600 text-white px-6 py-2.5 rounded shadow-sm flex items-center gap-2 font-medium transition-colors"
-              >
-                {loading ? 'Saving...' : <><CloudUpload size={18} /> PUBLISH AND VIEW</>}
-              </button>
-            </div>
-
-            {/* Right Side: Placeholder for Third Level (Future) */}
-            <div className="space-y-4 opacity-50 pointer-events-none">
-              <h3 className="font-semibold text-gray-700 border-b pb-2">Add Third Level Category</h3>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Product Category</label>
-                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100" disabled>
-                  <option>Select Category</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Sub Category Name</label>
-                <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100" disabled />
-              </div>
-              <button className="bg-[#3b82f6] text-white px-6 py-2.5 rounded shadow-sm flex items-center gap-2 font-medium" disabled>
-                 <CloudUpload size={18} /> PUBLISH AND VIEW
-              </button>
-            </div>
+          {/* Main Category Selection */}
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-gray-700">Select Parent Category</label>
+            <select 
+              className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-[#7D2596] bg-white"
+              value={formData.parentCategoryId}
+              onChange={(e) => setFormData({...formData, parentCategoryId: e.target.value})}
+              required
+            >
+              <option value="">-- Select Category --</option>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
           </div>
+
+          {/* Sub Category Name */}
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-gray-700">Sub Category Name</label>
+            <input 
+              type="text" 
+              placeholder="e.g. Sensors, Motors, Wheels"
+              className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-[#7D2596]"
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              required
+            />
+          </div>
+
+          {/* Submit Button */}
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full py-3 bg-[#7D2596] text-white font-bold rounded-lg hover:bg-[#631d76] transition-all flex items-center justify-center gap-2 shadow-md shadow-purple-100 disabled:opacity-70"
+          >
+            {loading ? <Loader className="animate-spin" size={20} /> : <Save size={20} />}
+            {loading ? 'Saving...' : 'Save Sub Category'}
+          </button>
 
         </form>
       </div>
