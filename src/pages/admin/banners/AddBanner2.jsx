@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { uploadBannerImage, addBanner } from '../../../services/productService';
-import { getCategories } from '../../../services/categoryService'; // ✅ Import Category Service
+import { getCategories } from '../../../services/categoryService'; 
 import { Upload, X, CloudUpload } from 'lucide-react';
 
 export default function AddBanner2() {
@@ -10,14 +10,14 @@ export default function AddBanner2() {
   const [imageFile, setImageFile] = useState(null);
   const [preview, setPreview] = useState(null);
   
-  // ✅ State for Categories
+  // State for Categories
   const [categoriesList, setCategoriesList] = useState([]);
 
   const [category, setCategory] = useState('');
   const [subCategory, setSubCategory] = useState('');
   const [thirdCategory, setThirdCategory] = useState('');
 
-  // ✅ Fetch Categories on Load
+  // Fetch Categories on Load
   useEffect(() => {
     const fetchCats = async () => {
       try {
@@ -47,17 +47,22 @@ export default function AddBanner2() {
       const imageUrl = await uploadBannerImage(imageFile);
       
       await addBanner({
-        type: 'home_2', 
+        // ✅ KEY FIX: 'home_banner' is the main collection
+        // 'position: bottom' ensures it goes to List 2
+        collection: 'home_banner', 
+        position: 'bottom', 
         imageUrl,
         category,
         subCategory,
-        thirdCategory
+        thirdCategory,
+        createdAt: new Date().toISOString()
       });
 
-      alert("Banner added!");
+      alert("Banner added to List 2!");
       navigate('/admin/banners/home-2');
     } catch (error) {
       alert("Failed to add banner");
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -75,7 +80,7 @@ export default function AddBanner2() {
         <form onSubmit={handleSubmit} className="p-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             
-            {/* ✅ REAL CATEGORY DROPDOWN */}
+            {/* REAL CATEGORY DROPDOWN */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">Category</label>
               <select 
@@ -92,7 +97,7 @@ export default function AddBanner2() {
               </select>
             </div>
 
-            {/* Sub Category */}
+            {/* Sub Category (Static Placeholder for now) */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">Sub Category</label>
               <select value={subCategory} onChange={e => setSubCategory(e.target.value)} className="w-full p-2.5 border border-gray-300 rounded focus:border-blue-500 outline-none bg-white">
@@ -101,7 +106,7 @@ export default function AddBanner2() {
               </select>
             </div>
 
-            {/* Third Level Category */}
+            {/* Third Level Category (Static Placeholder) */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">Third Level Category</label>
               <select value={thirdCategory} onChange={e => setThirdCategory(e.target.value)} className="w-full p-2.5 border border-gray-300 rounded focus:border-blue-500 outline-none bg-white">
@@ -129,7 +134,7 @@ export default function AddBanner2() {
           </div>
 
           <button type="submit" disabled={loading} className="bg-[#3b82f6] text-white px-8 py-3 rounded font-bold text-sm hover:bg-blue-700 shadow-md uppercase flex items-center gap-2">
-            <CloudUpload size={20} /> {loading ? 'Uploading...' : 'Publish and View'}
+            <CloudUpload size={20} /> {loading ? 'Uploading...' : 'Publish Banner 2'}
           </button>
 
         </form>

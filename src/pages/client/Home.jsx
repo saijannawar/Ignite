@@ -35,28 +35,37 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // 1. Fetch Hero Slides
         const slideSnap = await getDocs(collection(db, "home_banners"));
         const slidesData = slideSnap.docs
           .map(doc => ({ id: doc.id, ...doc.data() }))
           .sort((a, b) => (a.order || 0) - (b.order || 0));
 
-        const [list1Data, list2Data, categoryData, productData] = await Promise.all([
-          getBanners('home_1'), 
-          getBanners('home_2'), 
+        // 2. Fetch Data
+        const [allBanners, categoryData, productData] = await Promise.all([
+          getBanners('home_banner'), // ✅ Fetch ALL banners from single collection
           getCategories(),
           getProducts()
         ]);
         
         setHeroSlides(slidesData); 
-        setHomeList1Banners(list1Data); 
-        setHomeList2Banners(list2Data); 
-        
-        // ✅ SORT CATEGORIES BY ORDER (Admin Panel Sync)
+
+        // ✅ FILTER BANNERS based on 'position' ('top' vs 'bottom')
+        if (allBanners && allBanners.length > 0) {
+            const topBanners = allBanners.filter(b => b.position === 'top' || !b.position); // Default to top
+            const bottomBanners = allBanners.filter(b => b.position === 'bottom');
+            
+            setHomeList1Banners(topBanners);
+            setHomeList2Banners(bottomBanners);
+        }
+
+        // 3. Process Categories
         if (categoryData && categoryData.length > 0) {
             categoryData.sort((a, b) => (a.order || 0) - (b.order || 0));
         }
         setCategories(categoryData);
 
+        // 4. Process Products & Ratings
         const formattedProducts = productData.map((p) => {
           const reviewsList = Array.isArray(p.reviews) ? p.reviews : [];
           const reviewCount = reviewsList.length;
@@ -71,12 +80,14 @@ export default function Home() {
           };
         });
 
+        // 5. Sort Popular & Latest
         const popularSorted = [...formattedProducts].sort((a, b) => b.reviews - a.reviews);
         
         setProducts(popularSorted);
         setFilteredProducts(popularSorted); 
         setLatestProducts(formattedProducts.slice(0, 10)); 
 
+        // 6. Calculate Top Categories
         const catCounts = {};
         formattedProducts.forEach(p => {
             if(p.category) {
@@ -155,8 +166,8 @@ export default function Home() {
   return (
     <div className="w-full min-h-screen font-sans">
       
-      {/* TOP SLIDER */}
-      <div className="bg-[#E6E6FA] pb-4 pt-4"> 
+      {/* ✅ Light Purple Background for Slide & Category Section */}
+      <div className="bg-[#f3e8ff] pb-4 pt-4"> 
         <div className="container mx-auto px-4 mb-4"> 
           <div className="relative w-full h-[200px] sm:h-[300px] md:h-[450px] lg:h-[500px] rounded-2xl overflow-hidden shadow-sm bg-white group">
             {heroSlides.length === 0 ? (
@@ -186,7 +197,7 @@ export default function Home() {
         <div className="container mx-auto px-4">
             <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide justify-start lg:justify-center"> 
               {categories.map((cat) => (
-                  <Link to={`/shop?category=${cat.id}`} key={cat.id} className="group min-w-[140px] w-[140px] h-[180px] flex flex-col items-center justify-between bg-white border border-gray-100 rounded-xl hover:shadow-lg hover:border-[#7D2596]/30 transition-all duration-300 cursor-pointer p-4">
+                  <Link to={`/shop?category=${cat.id}`} key={cat.id} className="group min-w-[140px] w-[140px] h-[180px] flex flex-col items-center justify-between bg-white border border-purple-100 rounded-xl hover:shadow-lg hover:border-[#7D2596]/30 transition-all duration-300 cursor-pointer p-4">
                     <div className="w-20 h-20 flex items-center justify-center flex-grow">
                       <img src={cat.imageUrl} alt={cat.name} className="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-300" />
                     </div>
@@ -201,17 +212,14 @@ export default function Home() {
 
       <div className="bg-white pt-4 pb-10"> 
         
-        {/* ✅ POPULAR PRODUCTS - WITH GAP & SCROLL FIX */}
+        {/* POPULAR PRODUCTS */}
         <div className="container mx-auto px-4 mb-10 relative group/slider"> 
           
           <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-gray-200 pb-2 mb-4 gap-4"> 
-            
-            {/* Title: Fixed width on large screens to prevent squashing */}
             <div className="flex-shrink-0 md:mr-4">
               <h2 className="text-2xl font-bold text-gray-800">Popular Products</h2>
             </div>
 
-            {/* Filter Tabs: min-w-0 is CRITICAL for flex children to scroll properly */}
             <div className="flex-1 min-w-0 overflow-hidden w-full">
                 <div className="flex gap-6 overflow-x-auto pb-2 scrollbar-hide w-full items-center">
                     <button onClick={() => setActiveTab('ALL')} className={`whitespace-nowrap pb-1 text-sm font-bold uppercase transition-all border-b-[3px] ${activeTab === 'ALL' ? 'text-[#7D2596] border-[#7D2596]' : 'text-gray-500 border-transparent hover:text-gray-800'}`}>ALL</button>
@@ -259,6 +267,7 @@ export default function Home() {
             </div>
           </div>
 
+          {/* LIST 1: Shows Top Banners */}
           {homeList1Banners.length > 0 && (
             <div className="relative group/bannerSlider">
               <button onClick={() => scrollContainer(bannerContainerRef, 'left')} className="hidden md:flex absolute -left-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 bg-white border border-gray-200 rounded-full shadow-lg items-center justify-center text-gray-600 hover:bg-[#7D2596] hover:text-white hover:border-[#7D2596] transition-all opacity-0 group-hover/bannerSlider:opacity-100"><ChevronLeft size={24} /></button>
@@ -332,7 +341,7 @@ export default function Home() {
             ))}
         </div>
 
-        {/* HOME BANNER LIST 2 */}
+        {/* LIST 2: Shows Bottom Banners */}
         {homeList2Banners.length > 0 && (
           <div className="container mx-auto px-4 max-w-7xl mb-6 relative group/bannerList2">
             <div className="relative">

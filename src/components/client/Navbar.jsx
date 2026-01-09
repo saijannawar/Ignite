@@ -130,14 +130,14 @@ export default function Navbar({ onOpenSidebar }) {
 
             <Link to="/" className="flex items-center gap-2 group">
               
-              {/* ✅ LOGO IMAGE (Replaces the purple icon div) */}
+              {/* ✅ LOGO IMAGE */}
               <img 
                  src="/vite.svg" 
                  alt="IgniteNow Logo" 
                  className="h-10 w-10 object-contain" 
               />
 
-              {/* Text Brand Name (Kept as requested) */}
+              {/* Text Brand Name */}
               <div className="flex flex-col">
                   <span className="text-xl font-extrabold tracking-[0.25em] leading-none">
                   <span className="text-[#A662BE]">I</span>
@@ -146,11 +146,8 @@ export default function Navbar({ onOpenSidebar }) {
                 </span>
 
                 <span className="text-[10px] font-bold tracking-[0.15em] uppercase hidden sm:block">
-                  
                   <span className="text-gray-400">Ideas Into Reality</span>
                 </span>
-
-
               </div>
             </Link>
           </div>
@@ -356,12 +353,14 @@ export default function Navbar({ onOpenSidebar }) {
                <div className="hidden md:flex gap-8 text-[13px] font-semibold text-gray-500 tracking-wide">
                   <Link to="/" className="hover:text-[#7D2596] transition-colors uppercase">Home</Link>
                   <a href="https://wa.me/919011401920" target="_blank" rel="noopener noreferrer" className="hover:text-[#7D2596] transition-colors uppercase">Bulk & Product Enquiry (Same-Day Delivery)</a>
+                  <Link to="/blogs" className="hover:text-[#7D2596] transition-colors uppercase">Blogs</Link>
                   <Link to="/about" className="hover:text-[#7D2596] transition-colors uppercase">About</Link>
                </div>
 
-               <a href="https://wa.me/919011401920" target="_blank" rel="noopener noreferrer" className="text-[#7D2596] text-xs font-bold hover:underline flex items-center gap-1">
+               {/* ✅ UPDATED LINK TO BLOGS */}
+               <Link to="/blogs" className="text-[#7D2596] text-xs font-bold hover:underline flex items-center gap-1">
                  Need Project Help? 💬
-               </a>
+               </Link>
              </nav>
           </div>
         </div>

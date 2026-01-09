@@ -1,10 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Edit2, Trash2, Search, Star, ChevronLeft, ChevronRight, Eye, Loader } from 'lucide-react';
+import { Edit2, Trash2, Search, Star, ChevronLeft, ChevronRight, Eye, Loader, Download, FileSpreadsheet, FileText } from 'lucide-react';
 import { getProducts, deleteProduct } from '../../../services/productService';
 import { getCategories } from '../../../services/categoryService';
 import { db } from '../../../config/firebase'; 
 import { collection, getDocs } from 'firebase/firestore';
+
+// ✅ Imports for Exporting
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function ProductList() {
   const [products, setProducts] = useState([]);
@@ -50,7 +55,6 @@ export default function ProductList() {
       const categoryObj = categories.find(c => c.id === selectedCategory);
       
       if (categoryObj && categoryObj.subCategories) {
-        // Ensure we handle both plain strings AND objects
         const subs = categoryObj.subCategories.map(s => 
           typeof s === 'object' ? s.name : s
         );
@@ -67,27 +71,21 @@ export default function ProductList() {
   // 3. ROBUST SALES CALCULATION
   const fetchRealSales = async () => {
     try {
-      // Fetch ALL orders to ensure we don't miss any due to Case Sensitivity ("Delivered" vs "delivered")
       const querySnapshot = await getDocs(collection(db, "orders"));
       
       let totals = {};
       querySnapshot.forEach((doc) => {
         const order = doc.data();
-        
-        // Check if status exists and is delivered (Case Insensitive)
         const status = order.status ? order.status.toLowerCase() : '';
         
         if (status === 'delivered') {
             if (order.items && Array.isArray(order.items)) {
-                // Note: Your order might save items as 'items' OR 'products' depending on your Checkout.jsx
-                // This checks both common names
                 order.items.forEach((item) => {
                     const prodId = item.id;
                     const qty = Number(item.quantity) || 0;
                     totals[prodId] = (totals[prodId] || 0) + qty;
                 });
             } else if (order.products && Array.isArray(order.products)) {
-                // Fallback if saved as 'products'
                 order.products.forEach((item) => {
                     const prodId = item.id;
                     const qty = Number(item.quantity) || 0;
@@ -106,8 +104,6 @@ export default function ProductList() {
   const filteredProducts = products.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory ? p.category === selectedCategory : true;
-    
-    // Check against subCategoryName (saved in product) or subCategory
     const matchesSubCategory = selectedSubCategory 
         ? (p.subCategoryName === selectedSubCategory || p.subCategory === selectedSubCategory)
         : true;
@@ -117,13 +113,57 @@ export default function ProductList() {
 
   // 5. Helper to get Real Rating
   const getAverageRating = (product) => {
-    // If we have reviews, calculate the average
     if (product.reviews && Array.isArray(product.reviews) && product.reviews.length > 0) {
         const total = product.reviews.reduce((acc, review) => acc + (Number(review.rating) || 0), 0);
         return total / product.reviews.length;
     }
-    // Fallback to manual rating or 0
     return Number(product.rating) || 0;
+  };
+
+  // ✅ EXPORT TO EXCEL FUNCTION
+  const downloadExcel = () => {
+    const dataToExport = filteredProducts.map(p => ({
+        "Product Name": p.name,
+        "Price": p.price,
+        "Stock Quantity": p.stock,
+        "Category": p.categoryName || '-',
+        "Image Link": p.imageUrl || 'No Image'
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Products");
+    XLSX.writeFile(workbook, "Product_Inventory.xlsx");
+  };
+
+  // ✅ EXPORT TO PDF FUNCTION
+  const downloadPDF = () => {
+    const doc = new jsPDF();
+    
+    doc.text("Product Inventory List", 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 22);
+
+    const tableColumn = ["Product Name", "Price", "Stock", "Category", "Image Link"];
+    const tableRows = filteredProducts.map(p => [
+        p.name,
+        `Rs. ${p.price}`,
+        p.stock,
+        p.categoryName || '-',
+        p.imageUrl || 'No Image'
+    ]);
+
+    autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 30,
+        styles: { fontSize: 8 },
+        columnStyles: {
+            4: { cellWidth: 50 } // Make image link column wider
+        }
+    });
+
+    doc.save("Product_Inventory.pdf");
   };
 
   // Pagination Logic
@@ -148,11 +188,31 @@ export default function ProductList() {
       {/* --- HEADER --- */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <h2 className="text-2xl font-bold text-gray-800">Products</h2>
-        <Link to="/admin/products/add">
-          <button className="bg-[#7D2596] hover:bg-[#631d76] text-white px-6 py-2.5 rounded shadow-sm font-bold text-sm transition-colors uppercase">
-            Add Product
-          </button>
-        </Link>
+        
+        {/* ✅ ADDED EXPORT BUTTONS & ADD PRODUCT BUTTON */}
+        <div className="flex items-center gap-3">
+            <button 
+                onClick={downloadExcel}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded shadow-sm font-bold text-sm transition-colors uppercase"
+                title="Download Excel"
+            >
+                <FileSpreadsheet size={16} /> <span className="hidden sm:inline">Excel</span>
+            </button>
+            
+            <button 
+                onClick={downloadPDF}
+                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded shadow-sm font-bold text-sm transition-colors uppercase"
+                title="Download PDF"
+            >
+                <FileText size={16} /> <span className="hidden sm:inline">PDF</span>
+            </button>
+
+            <Link to="/admin/products/add">
+            <button className="bg-[#7D2596] hover:bg-[#631d76] text-white px-6 py-2.5 rounded shadow-sm font-bold text-sm transition-colors uppercase flex items-center gap-2">
+                <Edit2 size={16} /> Add Product
+            </button>
+            </Link>
+        </div>
       </div>
 
       {/* --- FILTER BAR --- */}
@@ -161,8 +221,8 @@ export default function ProductList() {
           
           {/* Category Filter */}
           <div className="space-y-1">
-             <label className="text-xs font-bold text-gray-700">Category By</label>
-             <select 
+              <label className="text-xs font-bold text-gray-700">Category By</label>
+              <select 
                 className="w-full border border-gray-300 rounded p-2.5 text-sm text-gray-600 outline-none focus:border-[#7D2596] bg-white"
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
@@ -174,8 +234,8 @@ export default function ProductList() {
 
           {/* Sub Category Filter (Dynamic) */}
           <div className="space-y-1">
-             <label className="text-xs font-bold text-gray-700">Sub Category By</label>
-             <select 
+              <label className="text-xs font-bold text-gray-700">Sub Category By</label>
+              <select 
                 className="w-full border border-gray-300 rounded p-2.5 text-sm text-gray-600 outline-none focus:border-[#7D2596] bg-white disabled:bg-gray-50 disabled:text-gray-400"
                 value={selectedSubCategory}
                 onChange={(e) => setSelectedSubCategory(e.target.value)}
@@ -192,8 +252,8 @@ export default function ProductList() {
 
           {/* Search */}
           <div className="space-y-1">
-             <label className="text-xs font-bold text-gray-700">&nbsp;</label>
-             <div className="relative">
+              <label className="text-xs font-bold text-gray-700">&nbsp;</label>
+              <div className="relative">
                 <input 
                   type="text" 
                   placeholder="Search products..." 
@@ -202,7 +262,7 @@ export default function ProductList() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
                 <Search size={16} className="absolute left-3 top-3 text-gray-400" />
-             </div>
+              </div>
           </div>
         </div>
       </div>

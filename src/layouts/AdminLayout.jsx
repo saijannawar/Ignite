@@ -2,17 +2,17 @@ import React, { useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Image as ImageIcon, Grid, Package, Users, ShoppingBag, 
-  Flag, LogOut, ChevronRight, Menu, Bell
+  Flag, LogOut, ChevronRight, Menu, Bell, FileText // ✅ Added FileText Import
 } from 'lucide-react';
 import { auth } from '../config/firebase';
-import { useAuth } from '../context/AuthContext'; // Assuming you have this context available
+import { useAuth } from '../context/AuthContext'; 
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [expandedMenu, setExpandedMenu] = useState(null); 
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentUser } = useAuth(); // Get current user for avatar
+  const { currentUser } = useAuth(); 
 
   const handleLogout = async () => {
     await auth.signOut();
@@ -54,6 +54,17 @@ export default function AdminLayout() {
     },
     { name: 'Users', icon: <Users size={20} />, path: '/admin/users' },
     { name: 'Orders', icon: <ShoppingBag size={20} />, path: '/admin/orders' },
+
+    // ✅ NEW: BLOG BOARD SECTION
+    { 
+      name: 'Blog Board', 
+      icon: <FileText size={20} />, 
+      subItems: [
+        { name: 'All Posts', path: '/admin/blogs' },
+        { name: 'Write New', path: '/admin/blogs/add' },
+        { name: 'Categories', path: '/admin/blog-categories' }
+      ] 
+    },
     
     // BANNERS SECTION
     { 
@@ -66,8 +77,6 @@ export default function AdminLayout() {
         { name: 'Add Banner', path: '/admin/banners/home-2/add' }
       ] 
     },
-    
-    // ❌ REMOVED: Manage Logo
   ];
 
   return (

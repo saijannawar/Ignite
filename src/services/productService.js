@@ -7,7 +7,7 @@ import {
   deleteDoc, 
   updateDoc, 
   getDoc,
-  setDoc,      
+  setDoc,       
   arrayUnion,
   query,       
   where,       
@@ -15,9 +15,9 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-// ✅ Centralized Collection Names to prevent mismatches
+// ✅ Centralized Collection Names
 const PRODUCT_COLLECTION = "products";
-const BANNER_COLLECTION = "homeBanners"; // Matches your React Component fix
+const BANNER_COLLECTION = "homeBanners"; // Default for Slides
 const ORDER_COLLECTION = "orders";
 const USER_COLLECTION = "users";
 
@@ -25,20 +25,16 @@ const USER_COLLECTION = "users";
 // 1. IMAGE UPLOAD SERVICES
 // ==============================
 
-// Upload Multiple Images
 export const uploadProductImages = async (files) => {
   if (!files || files.length === 0) return [];
-
   const uploadPromises = files.map(async (file) => {
     const storageRef = ref(storage, `products/${Date.now()}-${file.name}`);
     const snapshot = await uploadBytes(storageRef, file);
     return await getDownloadURL(snapshot.ref);
   });
-
   return await Promise.all(uploadPromises);
 };
 
-// Upload Single Image
 export const uploadProductImage = async (file) => {
   if (!file) return null;
   const storageRef = ref(storage, `products/${Date.now()}-${file.name}`);
@@ -46,7 +42,6 @@ export const uploadProductImage = async (file) => {
   return await getDownloadURL(snapshot.ref);
 };
 
-// Upload Banner Image
 export const uploadBannerImage = async (file) => {
   if (!file) return null;
   const storageRef = ref(storage, `banners/${Date.now()}-${file.name}`);
@@ -58,24 +53,19 @@ export const uploadBannerImage = async (file) => {
 // 2. PRODUCT SERVICES
 // ==============================
 
-// Add Product (Includes Sub-Category Support)
 export const addProduct = async (productData) => {
   try {
     await addDoc(collection(db, PRODUCT_COLLECTION), {
       ...productData,
       createdAt: new Date(),
       price: parseFloat(productData.price),
-      originalPrice: parseFloat(productData.originalPrice || 0), // Standardized name
+      originalPrice: parseFloat(productData.originalPrice || 0),
       stock: parseInt(productData.stock || 0),
       discount: parseInt(productData.discount || 0),
       rating: parseInt(productData.rating || 0),
-      
-      // Categorization
       category: productData.category,
       categoryName: productData.categoryName || '',
       subCategory: productData.subCategory || '',
-      
-      // Images
       images: productData.images || [],
       imageUrl: productData.imageUrl || (productData.images && productData.images.length > 0 ? productData.images[0] : ''),
     });
@@ -85,23 +75,19 @@ export const addProduct = async (productData) => {
   }
 };
 
-// Get All Products
 export const getProducts = async () => {
   const snapshot = await getDocs(collection(db, PRODUCT_COLLECTION));
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 };
 
-// Delete Product
 export const deleteProduct = async (id) => {
   await deleteDoc(doc(db, PRODUCT_COLLECTION, id));
 };
 
-// Get Single Product By ID
 export const getProductById = async (id) => {
   try {
     const productRef = doc(db, PRODUCT_COLLECTION, id);
     const snapshot = await getDoc(productRef);
-
     if (snapshot.exists()) {
       return { id: snapshot.id, ...snapshot.data() };
     } else {
@@ -114,7 +100,6 @@ export const getProductById = async (id) => {
   }
 };
 
-// Add Review
 export const addProductReview = async (productId, reviewData) => {
   try {
     const productRef = doc(db, PRODUCT_COLLECTION, productId);
@@ -131,7 +116,6 @@ export const addProductReview = async (productId, reviewData) => {
 // 3. USER & WISHLIST SERVICES
 // ==============================
 
-// Add To Wishlist
 export const addToWishlist = async (userId, product) => {
   try {
     const wishlistRef = doc(db, USER_COLLECTION, userId, "wishlist", product.id);
@@ -148,7 +132,6 @@ export const addToWishlist = async (userId, product) => {
   }
 };
 
-// Get User Wishlist
 export const getUserWishlist = async (userId) => {
   try {
     const wishlistRef = collection(db, USER_COLLECTION, userId, "wishlist");
@@ -160,7 +143,6 @@ export const getUserWishlist = async (userId) => {
   }
 };
 
-// Remove From Wishlist
 export const removeFromWishlist = async (userId, productId) => {
   try {
     const itemRef = doc(db, USER_COLLECTION, userId, "wishlist", productId);
@@ -171,7 +153,6 @@ export const removeFromWishlist = async (userId, productId) => {
   }
 };
 
-// Add Address
 export const addUserAddress = async (userId, addressData) => {
   try {
     const addressRef = collection(db, USER_COLLECTION, userId, "addresses");
@@ -183,7 +164,6 @@ export const addUserAddress = async (userId, addressData) => {
   }
 };
 
-// Get Addresses
 export const getUserAddresses = async (userId) => {
   try {
     const addressRef = collection(db, USER_COLLECTION, userId, "addresses");
@@ -195,7 +175,6 @@ export const getUserAddresses = async (userId) => {
   }
 };
 
-// Delete Address
 export const deleteUserAddress = async (userId, addressId) => {
   try {
     const addressRef = doc(db, USER_COLLECTION, userId, "addresses", addressId);
@@ -206,7 +185,6 @@ export const deleteUserAddress = async (userId, addressId) => {
   }
 };
 
-// Update Address
 export const updateUserAddress = async (userId, addressId, addressData) => {
   try {
     const addressRef = doc(db, USER_COLLECTION, userId, "addresses", addressId);
@@ -221,7 +199,6 @@ export const updateUserAddress = async (userId, addressId, addressData) => {
 // 4. ORDER SERVICES
 // ==============================
 
-// Place Order
 export const placeOrder = async (userId, orderData) => {
   try {
     const docRef = await addDoc(collection(db, ORDER_COLLECTION), {
@@ -236,7 +213,6 @@ export const placeOrder = async (userId, orderData) => {
   }
 };
 
-// Get User Orders
 export const getUserOrders = async (userId) => {
   try {
     const q = query(
@@ -251,7 +227,6 @@ export const getUserOrders = async (userId) => {
   }
 };
 
-// Get All Orders (Admin)
 export const getAllOrders = async () => {
   try {
     const q = query(collection(db, ORDER_COLLECTION), orderBy("createdAt", "desc"));
@@ -264,7 +239,6 @@ export const getAllOrders = async () => {
   }
 };
 
-// Update Order Status
 export const updateOrderStatus = async (orderId, newStatus) => {
   try {
     const orderRef = doc(db, ORDER_COLLECTION, orderId);
@@ -275,7 +249,6 @@ export const updateOrderStatus = async (orderId, newStatus) => {
   }
 };
 
-// Delete Order
 export const deleteOrder = async (orderId) => {
   try {
     await deleteDoc(doc(db, ORDER_COLLECTION, orderId));
@@ -289,10 +262,11 @@ export const deleteOrder = async (orderId) => {
 // 5. BANNER & SLIDER SERVICES
 // ==============================
 
-// Add Banner
 export const addBanner = async (bannerData) => {
   try {
-    await addDoc(collection(db, BANNER_COLLECTION), {
+    // ✅ Add to a specific collection if provided in bannerData, else default
+    const targetCollection = bannerData.collection || BANNER_COLLECTION;
+    await addDoc(collection(db, targetCollection), {
       ...bannerData,
       createdAt: new Date().toISOString()
     });
@@ -302,11 +276,9 @@ export const addBanner = async (bannerData) => {
   }
 };
 
-// ✅ Get Home Slides (Using 'homeBanners' collection)
 export const getHomeSlides = async () => {
   try {
     const snapshot = await getDocs(collection(db, BANNER_COLLECTION)); 
-    // Ensure they are sorted by order if the field exists
     const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     return data.sort((a, b) => (a.order || 0) - (b.order || 0));
   } catch (error) {
@@ -315,15 +287,22 @@ export const getHomeSlides = async () => {
   }
 };
 
-// ✅ Generic Get Banners (Alias for getHomeSlides or separate logic if needed)
-export const getBanners = async () => {
-  return await getHomeSlides();
+// ✅ UPDATED: getBanners now accepts a collection name
+// usage: getBanners('home_banner') or getBanners('home_banner_2')
+export const getBanners = async (collectionName = BANNER_COLLECTION) => {
+  try {
+    const snapshot = await getDocs(collection(db, collectionName));
+    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return data.sort((a, b) => (a.order || 0) - (b.order || 0));
+  } catch (error) {
+    console.error(`Error fetching banners from ${collectionName}:`, error);
+    return [];
+  }
 };
 
-// Delete Banner
-export const deleteBanner = async (id) => {
+export const deleteBanner = async (id, collectionName = BANNER_COLLECTION) => {
   try {
-    await deleteDoc(doc(db, BANNER_COLLECTION, id));
+    await deleteDoc(doc(db, collectionName, id));
   } catch (error) {
     console.error("Error deleting banner:", error);
     throw error;
