@@ -6,12 +6,12 @@ import {
   Heart, 
   Share2, 
   Plus, 
-  Minus,
-  ChevronRight,
-  CheckCircle,
-  Truck,
-  ShieldCheck,
-  Loader,
+  Minus, 
+  ChevronRight, 
+  CheckCircle, 
+  Truck, 
+  ShieldCheck, 
+  Loader, 
   User
 } from 'lucide-react';
 
