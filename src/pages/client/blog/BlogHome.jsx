@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, Bookmark, ShieldCheck, MessageCircle, User, 
 import Preloader from '../../../components/common/Preloader';
 // ✅ Import Auth
 import { useAuth } from '../../../context/AuthContext';
+import SEO from '../../../components/common/SEO'; // ✅ Import SEO
 
 export default function BlogHome() {
   const { currentUser } = useAuth(); 
@@ -180,6 +181,13 @@ export default function BlogHome() {
   return (
     <div className="bg-white min-h-screen font-sans pb-24 md:pb-12">
       
+      {/* ✅ Add SEO Metadata */}
+      <SEO 
+        title="Blog - Latest Tech Trends & Projects" 
+        description="Explore the latest in technology, engineering projects, and coding tutorials on Ignite Insights."
+        url="/blogs"
+      />
+
       {/* 1. LATEST PROJECTS */}
       <div className="container mx-auto px-4 max-w-7xl pt-2 pb-2">
         <div className="flex items-center justify-between mb-2">
@@ -289,8 +297,6 @@ export default function BlogHome() {
       </div>
 
       {/* 4. EDITORIAL CHOICE */}
-      {/* ... (Existing Editorial Section) ... */}
-      {/* (To save space in response, assume editorial section code remains unchanged from previous step) */}
       <div className="container mx-auto px-0 md:px-4 max-w-7xl pt-2 pb-2 relative">
          {editorialList.length === 0 ? (
            <div className="text-center py-6 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-gray-400 text-sm">No editorial choices found.</div>
@@ -331,7 +337,7 @@ export default function BlogHome() {
               </div>
               <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
                  {editorialList.map((_, idx) => (
-                    <button key={idx} onClick={() => scrollToEditorial(idx)} className={`h-1.5 rounded-full transition-all duration-300 shadow-sm ${activeEditorialIndex === idx ? 'w-5 bg-yellow-400' : 'w-1.5 bg-gray-600 hover:bg-gray-500'}`}></button>
+                   <button key={idx} onClick={() => scrollToEditorial(idx)} className={`h-1.5 rounded-full transition-all duration-300 shadow-sm ${activeEditorialIndex === idx ? 'w-5 bg-yellow-400' : 'w-1.5 bg-gray-600 hover:bg-gray-500'}`}></button>
                  ))}
               </div>
            </div>
@@ -371,48 +377,48 @@ export default function BlogHome() {
          {/* Tabs */}
          <div className="flex items-center gap-2 mb-3 bg-white w-full overflow-x-auto scrollbar-hide">
             {["Newest", "Popular", "Featured"].map((tab) => (
-                <button
+               <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={`px-5 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
-                      activeTab === tab 
-                      ? 'bg-[#E63946] text-white shadow-md' 
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                     activeTab === tab 
+                     ? 'bg-[#E63946] text-white shadow-md' 
+                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
-                >
+               >
                   {tab}
-                </button>
+               </button>
             ))}
          </div>
 
          {/* List Items with REAL Comment Count */}
          <div className="flex flex-col gap-3">
             {tabBlogs.length === 0 ? (
-                <div className="text-gray-400 text-sm italic py-4">No posts found for {activeTab}.</div>
+               <div className="text-gray-400 text-sm italic py-4">No posts found for {activeTab}.</div>
             ) : (
-                tabBlogs.map((blog) => (
-                    <Link to={`/blogs/${blog.id}`} key={blog.id} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all group">
-                        
-                        <div className="w-14 h-14 md:w-16 md:h-16 flex-shrink-0 rounded-full overflow-hidden border-2 border-gray-100 group-hover:border-[#E63946] transition-colors relative">
-                           <img src={blog.imageUrl} alt={blog.title} className="w-full h-full object-cover" />
-                        </div>
+               tabBlogs.map((blog) => (
+                  <Link to={`/blogs/${blog.id}`} key={blog.id} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all group">
+                     
+                     <div className="w-14 h-14 md:w-16 md:h-16 flex-shrink-0 rounded-full overflow-hidden border-2 border-gray-100 group-hover:border-[#E63946] transition-colors relative">
+                        <img src={blog.imageUrl} alt={blog.title} className="w-full h-full object-cover" />
+                     </div>
 
-                        <div className="flex-1 min-w-0">
-                           <h3 className="text-sm md:text-base font-bold text-gray-800 leading-tight mb-1 line-clamp-2 group-hover:text-[#E63946] transition-colors">
-                              {blog.title}
-                           </h3>
-                           <div className="flex items-center gap-3 text-xs text-gray-500 font-medium">
-                              <span className="text-[#E63946] uppercase font-bold text-[10px]">{blog.category}</span>
-                              <span className="w-1 h-1 rounded-full bg-gray-400"></span>
-                              {/* ✅ REAL COMMENT COUNT */}
-                              <span className="flex items-center gap-1">
-                                <MessageCircle size={10} /> 
-                                {commentCounts[blog.id] || 0} Comments
-                              </span>
-                           </div>
+                     <div className="flex-1 min-w-0">
+                        <h3 className="text-sm md:text-base font-bold text-gray-800 leading-tight mb-1 line-clamp-2 group-hover:text-[#E63946] transition-colors">
+                           {blog.title}
+                        </h3>
+                        <div className="flex items-center gap-3 text-xs text-gray-500 font-medium">
+                           <span className="text-[#E63946] uppercase font-bold text-[10px]">{blog.category}</span>
+                           <span className="w-1 h-1 rounded-full bg-gray-400"></span>
+                           {/* ✅ REAL COMMENT COUNT */}
+                           <span className="flex items-center gap-1">
+                             <MessageCircle size={10} /> 
+                             {commentCounts[blog.id] || 0} Comments
+                           </span>
                         </div>
-                    </Link>
-                ))
+                     </div>
+                  </Link>
+               ))
             )}
          </div>
       </div>
@@ -422,13 +428,13 @@ export default function BlogHome() {
          <h2 className="text-lg font-bold text-gray-800 mb-3">Popular Tags</h2>
          <div className="flex flex-wrap gap-2">
             {categories.map((cat, index) => (
-                <Link
-                   to={`/blogs/category/${encodeURIComponent(cat.name)}`}
-                   key={cat.id}
-                   className={`${tagColors[index % tagColors.length]} text-white text-xs font-bold px-3 py-1.5 rounded-full hover:opacity-90 transition-opacity`}
-                >
-                   #{cat.name}
-                </Link>
+               <Link
+                  to={`/blogs/category/${encodeURIComponent(cat.name)}`}
+                  key={cat.id}
+                  className={`${tagColors[index % tagColors.length]} text-white text-xs font-bold px-3 py-1.5 rounded-full hover:opacity-90 transition-opacity`}
+               >
+                  #{cat.name}
+               </Link>
             ))}
          </div>
       </div>

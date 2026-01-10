@@ -4,7 +4,6 @@ import {
   Star, 
   ShoppingCart, 
   Heart, 
-  Repeat, 
   Share2, 
   Plus, 
   Minus,
@@ -22,6 +21,7 @@ import { db } from "../../config/firebase";
 import { getProductById } from '../../services/productService';
 import { useCart } from '../../context/CartContext'; 
 import { useAuth } from '../../context/AuthContext'; 
+import SEO from '../../components/common/SEO'; // ✅ Import SEO
 
 export default function ClientProductDetails() {
   const { id } = useParams();
@@ -162,7 +162,6 @@ export default function ClientProductDetails() {
     }
   };
 
-  // ✅ NEW: Handle Share Logic (Mobile Native Share or Clipboard Copy)
   const handleShare = async () => {
     if (navigator.share) {
       try {
@@ -175,7 +174,6 @@ export default function ClientProductDetails() {
         console.log('Error sharing', error);
       }
     } else {
-      // Fallback for desktop
       navigator.clipboard.writeText(window.location.href);
       alert("Link copied to clipboard!");
     }
@@ -242,9 +240,23 @@ export default function ClientProductDetails() {
   
   if (!product) return <div className="min-h-screen flex items-center justify-center text-gray-500">Product not found.</div>;
 
+  // Clean description for SEO (remove HTML tags if any)
+  const cleanDescription = product.description 
+    ? product.description.replace(/<[^>]+>/g, '').substring(0, 160) + '...'
+    : `Buy ${product.name} at best price.`;
+
   return (
     <div className="bg-white min-h-screen font-sans text-gray-700 pb-24 md:pb-0">
       
+      {/* ✅ Dynamic SEO for Product Page */}
+      <SEO 
+        title={`${product.name} - Buy Online`} 
+        description={cleanDescription}
+        image={mainImage}
+        url={`/shop/${id}`}
+        type="product"
+      />
+
       {/* Breadcrumbs */}
       <div className="bg-gray-50 py-3 border-b border-gray-100">
         <div className="container mx-auto px-4 max-w-7xl flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wide overflow-hidden whitespace-nowrap">
@@ -294,7 +306,6 @@ export default function ClientProductDetails() {
                   </div>
                 )}
                 
-                {/* ✅ UPDATED: Responsive Share Button */}
                 <button 
                   onClick={handleShare}
                   className="absolute top-4 right-4 z-10 p-2 bg-white rounded-full shadow-md text-gray-400 hover:text-[#7D2596] hover:scale-110 transition-all active:scale-95"

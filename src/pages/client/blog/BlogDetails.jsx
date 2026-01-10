@@ -15,6 +15,7 @@ import {
     ArrowLeft, Share2, MessageCircle, 
     Heart, Eye, Bookmark, Send, MoreHorizontal, Clock, User 
 } from 'lucide-react';
+import SEO from '../../../components/common/SEO'; // ✅ Import SEO Component
 
 export default function BlogDetails() {
   const { id } = useParams();
@@ -127,9 +128,21 @@ export default function BlogDetails() {
   if (loading) return <Preloader />;
   if (!blog) return <div className="text-center py-20 font-bold text-gray-500">Blog not found.</div>;
 
+  // Helper to strip HTML tags for description
+  const cleanDescription = blog.content ? blog.content.replace(/<[^>]+>/g, '').substring(0, 160) + '...' : '';
+
   return (
     <div className="bg-white min-h-screen font-sans pb-24">
       
+      {/* ✅ Dynamic SEO for Blog Post */}
+      <SEO 
+        title={blog.title} 
+        description={cleanDescription}
+        image={blog.imageUrl}
+        url={`/blogs/${id}`}
+        type="article"
+      />
+
       {/* HEADER */}
       <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-100 transition-all">
           <div className="container mx-auto px-4 h-16 flex items-center justify-between max-w-3xl">

@@ -8,12 +8,14 @@ import './index.css'
 // Import your Providers
 import { AuthProvider } from './context/AuthContext' // If you wrap auth here
 import { CartProvider } from './context/CartContext'
+import { HelmetProvider } from 'react-helmet-async' // ✅ Import SEO Provider
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    {/* Ensure Providers are wrapping the App */}
-    <CartProvider> 
-        <App />
-    </CartProvider>
+    <HelmetProvider> {/* ✅ Wrap everything for SEO */}
+      <CartProvider> 
+          <App />
+      </CartProvider>
+    </HelmetProvider>
   </React.StrictMode>,
 )
